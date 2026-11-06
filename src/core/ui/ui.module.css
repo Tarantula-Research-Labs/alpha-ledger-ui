@@ -1,0 +1,276 @@
+/* Shared building blocks used by every feature and section. */
+
+/* Buttons */
+.button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border-radius: var(--r-control);
+  border: 1px solid var(--rule-strong);
+  background: transparent;
+  color: var(--paper);
+  font-size: var(--step--1);
+  font-weight: 500;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.button:hover {
+  background: var(--raised);
+}
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.primary {
+  background: var(--brass);
+  border-color: var(--brass);
+  color: var(--on-brass);
+}
+.primary:hover {
+  background: var(--brass-strong);
+  border-color: var(--brass-strong);
+}
+.quiet {
+  border-color: transparent;
+  color: var(--muted);
+  padding: 0 10px;
+}
+.quiet:hover {
+  color: var(--paper);
+}
+
+/* Dialog and drawer (native <dialog>) */
+.dialog {
+  padding: 0;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-panel);
+  background: var(--surface);
+  color: var(--paper);
+  width: min(640px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  box-shadow: 0 24px 64px rgba(4, 7, 14, 0.6);
+}
+.wide {
+  width: min(860px, calc(100vw - 32px));
+}
+.dialog::backdrop {
+  background: rgba(6, 9, 16, 0.66);
+}
+.dialog[open] {
+  animation: rise 160ms ease-out;
+}
+.drawer {
+  margin: 0 0 0 auto;
+  height: 100dvh;
+  max-height: 100dvh;
+  width: min(600px, 100vw);
+  border-radius: 0;
+  border-width: 0 0 0 1px;
+}
+.drawer[open] {
+  animation: slide 180ms ease-out;
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+@keyframes slide {
+  from {
+    transform: translateX(24px);
+    opacity: 0;
+  }
+}
+.dialogInner {
+  padding: 22px 24px 24px;
+}
+.dialogInner:focus {
+  outline: none;
+}
+.dialogHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.dialogTitle {
+  font-size: var(--step-1);
+}
+.close {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-control);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.close:hover {
+  background: var(--raised);
+  color: var(--paper);
+}
+
+/* Code */
+.code {
+  border: 1px solid var(--rule);
+  border-radius: var(--r-control);
+  background: #0f1520;
+  overflow: hidden;
+}
+.codeBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 6px 6px 14px;
+  border-bottom: 1px solid var(--rule);
+  color: var(--muted);
+  font-size: var(--step--1);
+}
+.code pre {
+  margin: 0;
+  padding: 14px;
+  overflow-x: auto;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: #dcd6c6;
+  tab-size: 4;
+}
+
+/* Status */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: var(--step--1);
+  white-space: nowrap;
+}
+.status::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.complete::before {
+  background: var(--sage);
+}
+.pending::before {
+  border: 1.5px solid var(--brass);
+}
+.failed {
+  color: var(--rose);
+}
+.failed::before {
+  background: var(--rose);
+  border-radius: 1px;
+  transform: rotate(45deg);
+}
+
+/* Version ticks: one mark per saved version */
+.ticks {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 16px;
+}
+.tick {
+  width: 5px;
+  height: 12px;
+  border-radius: 1px;
+  background: var(--rule-strong);
+}
+.tickLatest {
+  height: 16px;
+  background: var(--brass);
+}
+.tickFailed {
+  background: transparent;
+  border: 1px solid var(--rose);
+}
+
+/* Breadcrumbs */
+.crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 14px;
+  padding: 0;
+  list-style: none;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.crumbs li + li::before {
+  content: "/";
+  margin-right: 6px;
+  color: var(--faint);
+}
+.crumbs a {
+  text-decoration: none;
+}
+.crumbs a:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+
+/* Form fields */
+.field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.label {
+  font-size: var(--step--1);
+  font-weight: 500;
+}
+.input {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 11px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-control);
+  background: var(--ink);
+}
+.input:focus-visible {
+  outline-offset: 0;
+  border-color: var(--brass);
+}
+.hint {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.error {
+  font-size: var(--step--1);
+  color: var(--rose);
+}
+
+/* Empty state */
+.empty {
+  padding: 28px 24px;
+  border: 1px dashed var(--rule-strong);
+  border-radius: var(--r-panel);
+  color: var(--muted);
+  max-width: 68ch;
+}
+.empty strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--paper);
+  font-weight: 600;
+}
+.emptyAction {
+  margin-top: 14px;
+}
+
+/* Identifiers (experiment, dataset and run names are things you type in code) */
+.ident {
+  font-family: var(--font-mono);
+  font-size: 0.92em;
+}

@@ -1,0 +1,122 @@
+/* Alpha Ledger theme: ledger ink, paper-coloured text, brass fittings. Dark only. */
+
+:root {
+  color-scheme: dark;
+
+  /* Colour */
+  --ink: #141b29; /* page */
+  --surface: #1a2234; /* sidebar, panels */
+  --raised: #222c41; /* hover, inputs */
+  --rule: #2d3850; /* ledger lines */
+  --rule-strong: #3d4a66;
+  --paper: #ece6d6; /* main text */
+  --muted: #a3acbd; /* secondary text */
+  --faint: #737e94; /* decoration only */
+  --brass: #d4a84b; /* accent, primary actions, latest version */
+  --brass-strong: #e8c06a;
+  --brass-wash: rgba(212, 168, 75, 0.12);
+  --on-brass: #231a06;
+  --sage: #8cbb9a; /* complete */
+  --rose: #e8908d; /* failed */
+  --rose-wash: rgba(232, 144, 141, 0.1);
+
+  /* Type */
+  --font-sans: "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --step--1: 0.8125rem; /* 13 */
+  --step-0: 0.9375rem; /* 15 */
+  --step-1: 1.1875rem; /* 19 */
+  --step-2: 1.5rem; /* 24 */
+  --step-3: 1.875rem; /* 30 */
+  --step-4: 2.375rem; /* 38 */
+
+  /* Shape */
+  --r-control: 6px;
+  --r-panel: 10px;
+  --gutter: clamp(16px, 4vw, 48px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--font-sans);
+  font-size: var(--step-0);
+  line-height: 1.55;
+  font-feature-settings: "tnum" 1; /* digits line up in every table */
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+a {
+  color: inherit;
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
+}
+
+::selection {
+  background: var(--brass);
+  color: var(--on-brass);
+}
+
+:focus-visible {
+  outline: 2px solid var(--brass);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

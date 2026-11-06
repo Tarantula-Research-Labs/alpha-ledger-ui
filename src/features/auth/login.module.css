@@ -1,0 +1,47 @@
+.page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+  background:
+    repeating-linear-gradient(to bottom, transparent 0 31px, rgba(61, 74, 102, 0.28) 31px 32px),
+    var(--ink);
+}
+
+.panel {
+  width: min(400px, 100%);
+  padding: 30px 28px 26px;
+  background: var(--surface);
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-panel);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.brand h1 {
+  font-size: var(--step-2);
+  letter-spacing: -0.015em;
+}
+
+.lead {
+  margin-bottom: 26px;
+  color: var(--muted);
+}
+
+.submit {
+  width: 100%;
+  justify-content: center;
+  min-height: 40px;
+  font-size: var(--step-0);
+}
+
+.note {
+  margin-top: 14px;
+  font-size: var(--step--1);
+  color: var(--muted);
+  text-align: center;
+}

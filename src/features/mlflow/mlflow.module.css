@@ -1,0 +1,139 @@
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 26px;
+}
+
+/* Pushes: one tab per version */
+.pushes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.push {
+  display: grid;
+  gap: 1px;
+  padding: 8px 14px;
+  border: 1px solid var(--rule-strong);
+  border-radius: var(--r-control);
+  text-decoration: none;
+}
+.push:hover {
+  background: var(--raised);
+}
+.push[aria-current="true"] {
+  border-color: var(--brass);
+  background: var(--brass-wash);
+}
+.pushVersion {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  color: var(--brass);
+}
+.pushMeta {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.runsSection {
+  margin-bottom: 22px;
+}
+.heading {
+  font-size: var(--step-1);
+  margin-bottom: 12px;
+}
+.tableWrap {
+  overflow-x: auto;
+  border-top: 2px solid var(--rule-strong);
+}
+.runs {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: var(--step--1);
+}
+.runs th {
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 500;
+  color: var(--muted);
+  border-bottom: 1px solid var(--rule-strong);
+}
+.runs td {
+  padding: 11px 12px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+.num {
+  text-align: right;
+}
+.runs th.num {
+  text-align: right;
+}
+.runName {
+  font-weight: 500;
+}
+.runId {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+.params {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+.best {
+  color: var(--brass);
+  font-weight: 600;
+}
+.final {
+  background: var(--brass-wash);
+}
+.finalTag {
+  margin-left: 8px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--brass);
+  color: var(--on-brass);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.legend {
+  margin-top: 8px;
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px 20px;
+  margin: 0 0 22px;
+}
+.facts dt {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+.facts dd {
+  margin: 2px 0 0;
+}
+
+.warn {
+  margin-bottom: 22px;
+  padding: 10px 12px;
+  border-radius: var(--r-control);
+  background: var(--rose-wash);
+  color: #f1c3c1;
+  font-size: var(--step--1);
+  max-width: 72ch;
+}
+
+.dialogText {
+  margin-bottom: 14px;
+  color: var(--muted);
+  max-width: 70ch;
+}

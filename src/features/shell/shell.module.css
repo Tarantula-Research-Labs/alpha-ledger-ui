@@ -1,0 +1,154 @@
+.frame {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  min-height: 100dvh;
+}
+
+.skip {
+  position: absolute;
+  left: 12px;
+  top: -48px;
+  z-index: 10;
+  padding: 8px 12px;
+  background: var(--brass);
+  color: var(--on-brass);
+  border-radius: var(--r-control);
+}
+.skip:focus {
+  top: 12px;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+  padding: 22px 16px 18px;
+  background: var(--surface);
+  border-right: 1px solid var(--rule);
+  overflow-y: auto;
+}
+
+.wordmark {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 8px;
+  font-size: var(--step-1);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+}
+
+.nav {
+  display: grid;
+  gap: 2px;
+}
+
+.navLink,
+.expLink {
+  display: block;
+  padding: 7px 10px;
+  border-radius: var(--r-control);
+  text-decoration: none;
+  color: var(--muted);
+}
+.navLink {
+  font-weight: 500;
+}
+.navLink:hover,
+.expLink:hover {
+  background: var(--raised);
+  color: var(--paper);
+}
+.navLink[aria-current="page"] {
+  color: var(--paper);
+  background: var(--raised);
+}
+
+.expList {
+  margin: 2px 0 10px;
+  padding: 0 0 0 10px;
+  list-style: none;
+  border-left: 1px solid var(--rule);
+  margin-left: 14px;
+}
+.expLink {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.expLink[aria-current="page"] {
+  color: var(--brass);
+}
+
+.foot {
+  margin-top: auto;
+  display: grid;
+  gap: 12px;
+}
+.sample {
+  padding: 10px 12px;
+  border-radius: var(--r-control);
+  background: var(--brass-wash);
+  color: var(--muted);
+  font-size: var(--step--1);
+  line-height: 1.45;
+}
+.sample strong {
+  color: var(--brass);
+  font-weight: 600;
+}
+.signOut {
+  padding: 4px 10px;
+  color: var(--muted);
+  font-size: var(--step--1);
+  text-decoration: none;
+}
+.signOut:hover {
+  color: var(--paper);
+  text-decoration: underline;
+}
+
+.main {
+  min-width: 0;
+  padding: 36px var(--gutter) 64px;
+}
+
+@media (max-width: 860px) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidebar {
+    position: static;
+    height: auto;
+    gap: 14px;
+    padding: 14px 16px;
+    border-right: 0;
+    border-bottom: 1px solid var(--rule);
+  }
+  .nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .expList {
+    display: none;
+  }
+  .foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .sample {
+    flex: 1;
+  }
+  .main {
+    padding-top: 24px;
+  }
+}

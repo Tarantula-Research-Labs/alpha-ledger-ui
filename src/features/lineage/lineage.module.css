@@ -1,0 +1,51 @@
+.lineage {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr));
+  gap: 18px 28px;
+}
+.heading {
+  margin: 0 0 8px;
+  font-size: var(--step--1);
+  font-weight: 500;
+  color: var(--muted);
+}
+.none {
+  font-size: var(--step--1);
+  color: var(--muted);
+}
+
+/* Upstream: nested, with ruled connectors like a ledger's sub-accounts */
+.tree,
+.flat {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tree .tree {
+  margin-left: 7px;
+  padding-left: 14px;
+  border-left: 1px solid var(--rule-strong);
+}
+.tree li,
+.flat li {
+  padding: 4px 0;
+}
+.node {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+.link {
+  color: var(--paper);
+  text-decoration: none;
+  font-size: var(--step--1);
+}
+.link:hover {
+  color: var(--brass);
+  text-decoration: underline;
+}
+.section {
+  font-size: 0.75rem;
+  color: var(--muted);
+}

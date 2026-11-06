@@ -2,15 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { USING_SAMPLE_DATA, useLedger } from "@/data/LedgerProvider";
+import { useEffect, useState, type ReactNode } from "react";
+import { apiGet } from "@/core/api";
+import { DashboardIcon, ExperimentsIcon, SignOutIcon, StatusIcon } from "@/core/ui/icons";
+import { USING_SAMPLE_DATA } from "@/data/LedgerProvider";
 import { LedgerMark } from "./LedgerMark";
 import s from "./shell.module.css";
 
+const NAV = [
+  { href: "/dashboard", label: "Dashboard", Icon: DashboardIcon },
+  { href: "/experiments", label: "Experiments", Icon: ExperimentsIcon },
+  { href: "/status", label: "Server status", Icon: StatusIcon },
+];
+
 export function Shell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { experiments } = useLedger();
-  const sorted = [...experiments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   const isCurrent = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
@@ -18,49 +24,70 @@ export function Shell({ children }: { children: ReactNode }) {
       <a href="#main" className={s.skip}>
         Skip to content
       </a>
-      <aside className={s.sidebar}>
-        <Link href="/experiments" className={s.wordmark}>
-          <LedgerMark size={26} />
-          <span>Alpha Ledger</span>
-        </Link>
+      <header className={s.bar}>
+        <div className={s.barInner}>
+          <Link href="/dashboard" className={s.wordmark}>
+            <LedgerMark size={30} />
+            <span className={s.wordmarkText}>Alpha Ledger</span>
+          </Link>
 
-        <nav aria-label="Main" className={s.nav}>
-          <Link href="/experiments" className={s.navLink} aria-current={pathname === "/experiments" ? "page" : undefined}>
-            Experiments
-          </Link>
-          <ul className={s.expList}>
-            {sorted.map((e) => {
-              const href = `/experiments/${e.name}`;
-              return (
-                <li key={e.name}>
-                  <Link href={href} className={s.expLink} aria-current={isCurrent(href) ? "page" : undefined}>
-                    {e.name}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-          <Link href="/status" className={s.navLink} aria-current={pathname === "/status" ? "page" : undefined}>
-            Server status
-          </Link>
-        </nav>
+          <nav aria-label="Main" className={s.nav}>
+            {NAV.map(({ href, label, Icon }) => (
+              <Link key={href} href={href} className={s.navLink} aria-label={label} aria-current={isCurrent(href) ? "page" : undefined}>
+                <Icon />
+                <span>{label}</span>
+              </Link>
+            ))}
+          </nav>
 
-        <div className={s.foot}>
-          {USING_SAMPLE_DATA && (
-            <p className={s.sample}>
-              <strong>Sample data.</strong> Experiments and versions here are examples until the server saves real ones.
-              Changes reset when you reload.
-            </p>
-          )}
-          <Link href="/login" className={s.signOut}>
-            Sign out
-          </Link>
+          <div className={s.right}>
+            {USING_SAMPLE_DATA && (
+              <span className={s.sample} title="Experiments and versions are examples until the server saves real ones. Changes reset when you reload.">
+                Sample data
+              </span>
+            )}
+            <ServerDot />
+            <span className={s.user}>
+              <span className={s.avatar} aria-hidden="true">
+                L
+              </span>
+              <span className={s.userName}>Luv</span>
+            </span>
+            <Link href="/login" className={s.signOut} aria-label="Sign out" title="Sign out">
+              <SignOutIcon />
+            </Link>
+          </div>
         </div>
-      </aside>
+      </header>
 
       <main id="main" className={s.main}>
         {children}
       </main>
     </div>
+  );
+}
+
+// A small live light: is the FastAPI server answering?
+function ServerDot() {
+  const [up, setUp] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const check = () =>
+      apiGet<{ status: string } | null>("/health")
+        .then((r) => alive && setUp(r?.status === "ok"))
+        .catch(() => alive && setUp(false));
+    void check();
+    const t = setInterval(check, 30000);
+    return () => {
+      alive = false;
+      clearInterval(t);
+    };
+  }, []);
+  const text = up === null ? "Checking server" : up ? "Server online" : "Server offline";
+  return (
+    <Link href="/status" className={s.server} data-state={up === null ? "checking" : up ? "up" : "down"}>
+      <span className={s.serverDot} aria-hidden="true" />
+      <span className={s.serverText}>{text}</span>
+    </Link>
   );
 }

@@ -1,61 +1,49 @@
-/* Layout pieces section panels share. */
+/* Pieces section panels share. */
 
-.toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px 20px;
-  flex-wrap: wrap;
-  margin-bottom: 26px;
-}
-.toolbarText {
-  color: var(--muted);
-  max-width: 70ch;
-}
-.toolbarText strong {
-  color: var(--paper);
-  font-weight: 500;
-}
-.actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.rule {
-  margin-bottom: 26px;
-  padding: 12px 14px;
-  border-left: 2px solid var(--brass);
-  background: var(--surface);
-  border-radius: 0 var(--r-control) var(--r-control) 0;
-  color: var(--muted);
-  max-width: 78ch;
-}
-.rule strong {
-  color: var(--paper);
-  font-weight: 500;
-}
-
-.details {
-  margin-top: 8px;
-  border-top: 1px solid var(--rule);
-  padding-top: 14px;
-}
-.details summary {
-  cursor: pointer;
-  font-weight: 500;
-  width: fit-content;
-}
-.details summary:hover {
-  color: var(--brass);
-}
-.details[open] summary {
+.text {
   margin-bottom: 14px;
-}
-.detailsText {
-  margin-bottom: 12px;
   color: var(--muted);
-  max-width: 70ch;
+  font-size: var(--fs-sm);
+}
+.note {
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--accent-hi);
+  border-radius: 0 var(--r-control) var(--r-control) 0;
+  background: rgba(13, 22, 41, 0.6);
+  color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.note strong {
+  color: var(--text);
+  font-weight: 500;
+}
+.rules {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+}
+.rules li {
+  position: relative;
+  padding-left: 16px;
+}
+.rules li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-hi);
+  box-shadow: 0 0 6px rgba(91, 139, 255, 0.7);
+}
+.rules li:first-child {
+  color: var(--text);
 }
 
 /* Choice cards (e.g. where data comes from) */
@@ -69,17 +57,19 @@
   grid-template-columns: auto minmax(0, 1fr);
   gap: 4px 12px;
   padding: 14px 16px;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
+  background: rgba(7, 12, 24, 0.6);
   cursor: pointer;
 }
 .choice:has(input:checked) {
-  border-color: var(--brass);
-  background: var(--brass-wash);
+  border-color: var(--accent-hi);
+  background: var(--accent-soft);
+  box-shadow: 0 0 16px rgba(59, 108, 246, 0.2);
 }
 .choice input {
   margin-top: 4px;
-  accent-color: var(--brass);
+  accent-color: var(--accent);
 }
 .choiceTitle {
   font-weight: 600;
@@ -87,7 +77,7 @@
 .choiceText {
   grid-column: 2;
   color: var(--muted);
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
 }
 .row {
   display: grid;
@@ -106,6 +96,12 @@
 }
 .muted {
   color: var(--muted);
+  font-size: var(--fs-sm);
+}
+.detailsText {
+  margin-bottom: 12px;
+  color: var(--muted);
+  font-size: var(--fs-sm);
 }
 
 @media (max-width: 560px) {

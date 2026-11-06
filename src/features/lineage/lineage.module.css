@@ -4,17 +4,17 @@
   gap: 18px 28px;
 }
 .heading {
-  margin: 0 0 8px;
-  font-size: var(--step--1);
+  margin: 0 0 10px;
+  font-size: var(--fs-xs);
   font-weight: 500;
-  color: var(--muted);
+  color: var(--label);
 }
 .none {
-  font-size: var(--step--1);
+  font-size: var(--fs-sm);
   color: var(--muted);
 }
 
-/* Upstream: nested, with ruled connectors like a ledger's sub-accounts */
+/* Upstream: nested, with connector lines */
 .tree,
 .flat {
   margin: 0;
@@ -24,7 +24,7 @@
 .tree .tree {
   margin-left: 7px;
   padding-left: 14px;
-  border-left: 1px solid var(--rule-strong);
+  border-left: 1px solid var(--line-strong);
 }
 .tree li,
 .flat li {
@@ -37,15 +37,15 @@
   gap: 4px 10px;
 }
 .link {
-  color: var(--paper);
+  color: var(--text);
   text-decoration: none;
-  font-size: var(--step--1);
+  font-size: var(--fs-sm);
 }
 .link:hover {
-  color: var(--brass);
+  color: var(--accent-hi);
   text-decoration: underline;
 }
 .section {
-  font-size: 0.75rem;
+  font-size: var(--fs-xs);
   color: var(--muted);
 }

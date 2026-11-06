@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { apiGet } from "@/core/api";
 import { NOTEBOOK_API_URL } from "@/core/config";
 import type { SectionMeta } from "@/core/sections";
-import { Button, identClass } from "@/core/ui";
+import { Button, PageHeader, Panel, identClass } from "@/core/ui";
 import h from "./health.module.css";
 
 // Live from the FastAPI server: nothing on this page is sample data.
@@ -63,15 +63,15 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
 
   return (
     <>
-      <header className={h.head}>
-        <div>
-          <h1 className={h.title}>Server status</h1>
-          <p className={h.lead}>Live checks from the FastAPI server: is it running, and can it reach your bucket and tables.</p>
-        </div>
-        <Button onClick={() => void check()} disabled={busy}>
-          {busy ? "Checking" : "Check again"}
-        </Button>
-      </header>
+      <PageHeader
+        title="Server status"
+        sub="Live checks from the FastAPI server: is it running, and can it reach your bucket and tables."
+        actions={
+          <Button onClick={() => void check()} disabled={busy}>
+            {busy ? "Checking" : "Check again"}
+          </Button>
+        }
+      />
 
       {down && (
         <div className={h.down} role="alert">
@@ -82,6 +82,7 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
       )}
 
       {rows && (
+        <Panel title="Checks" icon flush>
         <table className={h.table}>
           <tbody>
             {rows.map((r) => (
@@ -95,6 +96,7 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
             ))}
           </tbody>
         </table>
+        </Panel>
       )}
 
       {checkedAt && <p className={h.when}>Last checked at {checkedAt.toLocaleTimeString("en-IN", { hour12: false })}</p>}

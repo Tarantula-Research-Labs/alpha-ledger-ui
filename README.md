@@ -40,7 +40,8 @@ src/
   core/         shared plumbing: types, formatting, server calls, UI kit; knows no section
   data/         where screens get experiments and versions (sample now, FastAPI later)
   features/     app-wide features
-    shell/        sidebar and page frame
+    shell/        top navigation bar and page frame
+    dashboard/    home page (blank until the first baseline is stored)
     auth/         sign-in (not connected yet)
     experiments/  experiment list, new experiment, the overview, section headers
     versions/     dataset and version tables, version details, save snippets
@@ -69,4 +70,10 @@ scripts/
 ## Theme
 
 All colours, type sizes and radii are variables at the top of `src/app/globals.css`.
-Ledger ink background, paper-coloured text, brass for actions and the latest version. Fonts: IBM Plex Sans and IBM Plex Mono, bundled (no internet needed).
+Near-black navy background, electric-blue accents, glowing panels, blue field labels; green for complete or positive, red for failed or negative.
+Fonts: Poppins and IBM Plex Mono, bundled (no internet needed).
+
+## Charts and reports
+
+Research charts will support both Plotly (saved as JSON, shown interactive) and matplotlib (saved as PNG/SVG, shown as images).
+Where they appear is still to be decided. MLflow pushes already show a Performance bar chart per run.

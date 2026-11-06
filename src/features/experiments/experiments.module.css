@@ -1,55 +1,5 @@
-/* ---------- Page heads ---------- */
-.pageHead {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  flex-wrap: wrap;
-  margin-bottom: 28px;
-}
-.pageTitle {
-  font-size: var(--step-4);
-  letter-spacing: -0.02em;
-  margin-bottom: 8px;
-}
-.lead {
-  max-width: 68ch;
-  color: var(--muted);
-}
-.meta {
-  margin-top: 6px;
-  font-size: var(--step--1);
-  color: var(--muted);
-}
 .muted {
   color: var(--muted);
-}
-
-/* ---------- Experiment ledger table ---------- */
-.tableWrap {
-  overflow-x: auto;
-  border-top: 2px solid var(--rule-strong);
-}
-.ledger {
-  width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-}
-.ledger th {
-  padding: 10px 14px;
-  text-align: left;
-  font-size: var(--step--1);
-  font-weight: 500;
-  color: var(--muted);
-  border-bottom: 1px solid var(--rule-strong);
-}
-.ledger td {
-  padding: 16px 14px;
-  vertical-align: top;
-  border-bottom: 1px solid var(--rule);
-}
-.ledger tbody tr:hover {
-  background: rgba(34, 44, 65, 0.5);
 }
 .num {
   text-align: right;
@@ -58,52 +8,86 @@
   white-space: nowrap;
   color: var(--muted);
 }
+
+/* ---------- Experiments table ---------- */
+.tableWrap {
+  overflow-x: auto;
+}
+.table {
+  width: 100%;
+  min-width: 780px;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.table th {
+  padding: 12px 18px;
+  text-align: left;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--label);
+  border-bottom: 1px solid var(--line);
+}
+.table th.num {
+  text-align: right;
+}
+.table td {
+  padding: 16px 18px;
+  vertical-align: top;
+  border-bottom: 1px solid var(--line);
+}
+.table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.table tbody tr:hover {
+  background: rgba(59, 108, 246, 0.06);
+}
 .expName {
-  color: var(--paper);
+  color: var(--text);
   font-weight: 500;
   text-decoration: none;
 }
 .expName:hover {
-  color: var(--brass);
+  color: var(--accent-hi);
   text-decoration: underline;
 }
 .expDesc {
   margin-top: 3px;
   max-width: 52ch;
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
   color: var(--muted);
 }
 
 /* Coverage strip */
 .coverage {
   display: inline-flex;
-  gap: 3px;
+  gap: 4px;
 }
 .cell {
   display: inline-grid;
   place-items: center;
-  width: 26px;
+  width: 28px;
   height: 22px;
-  border-radius: 3px;
+  border-radius: 4px;
   font-size: 0.6875rem;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--line-strong);
   color: var(--faint);
 }
 .cell[data-state="filled"] {
-  background: var(--brass-wash);
-  border-color: var(--brass);
-  color: var(--brass);
+  background: linear-gradient(180deg, #4877ff, #2a4fc9);
+  border-color: #5b8bff;
+  color: #fff;
+  box-shadow: 0 0 10px rgba(59, 108, 246, 0.45);
 }
 .cell[data-state="skipped"] {
   border-style: dashed;
-  border-color: var(--rule);
-  background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(61, 74, 102, 0.35) 4px 5px);
+  border-color: var(--line);
+  background: repeating-linear-gradient(135deg, transparent 0 4px, rgba(74, 112, 196, 0.18) 4px 5px);
 }
 
 /* ---------- Dialog bits ---------- */
 .dialogNote {
   margin: 4px 0 18px;
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
   color: var(--muted);
 }
 .dialogActions {
@@ -112,74 +96,61 @@
   gap: 8px;
 }
 
-/* ---------- Experiment overview: the ledger spine ---------- */
-.expHead {
-  margin-bottom: 32px;
+/* ---------- Experiment overview ---------- */
+.headNote {
+  font-size: var(--fs-xs);
+  color: var(--muted);
 }
-.expTitle {
-  font-size: var(--step-3);
-  font-weight: 500;
-  letter-spacing: -0.01em;
-  margin-bottom: 8px;
-  overflow-wrap: anywhere;
-}
-
-.spine {
+.pipeline {
   margin: 0;
   padding: 0;
   list-style: none;
-  border-top: 2px solid var(--rule-strong);
 }
-.spineRow {
-  border-bottom: 1px solid var(--rule);
+.pipeline li + li {
+  border-top: 1px solid var(--line);
 }
-.spineLink {
-  position: relative;
+.stage {
   display: grid;
-  grid-template-columns: 88px minmax(0, 1fr);
+  grid-template-columns: 52px minmax(0, 1fr) 20px;
+  align-items: start;
+  gap: 14px;
+  padding: 16px 18px;
   text-decoration: none;
 }
-/* The spine itself: one vertical rule through every section number */
-.spineLink::before {
-  content: "";
-  position: absolute;
-  left: 87px;
-  top: 0;
-  bottom: 0;
-  width: 1px;
-  background: var(--brass);
-  opacity: 0.45;
+.stage:hover {
+  background: rgba(59, 108, 246, 0.07);
 }
-.spineLink:hover {
-  background: rgba(34, 44, 65, 0.55);
+.stage:hover .stageTitle {
+  color: var(--accent-hi);
 }
-.spineLink:hover .spineTitle {
-  color: var(--brass);
+.stageNum {
+  display: grid;
+  place-items: center;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--accent-soft);
+  color: var(--accent-hi);
+  font-weight: 600;
+  font-size: var(--fs-sm);
 }
-.spineNum {
-  padding: 18px 18px 18px 0;
-  text-align: right;
-  font-size: var(--step-3);
-  font-weight: 300;
-  line-height: 1;
-  color: var(--brass);
-}
-.spineRow[data-active="false"] .spineNum {
+.stage[data-active="false"] .stageNum {
+  background: transparent;
+  border-style: dashed;
   color: var(--faint);
 }
-.spineBody {
+.stageBody {
   display: grid;
-  gap: 10px;
-  padding: 18px 0 18px 22px;
+  gap: 8px;
+  padding-top: 4px;
 }
-.spineTitle {
-  font-size: var(--step-1);
+.stageTitle {
   font-weight: 600;
-  color: var(--paper);
+  color: var(--text);
 }
-.spineNote {
+.stageNote {
   color: var(--muted);
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
 }
 .entries {
   display: grid;
@@ -190,10 +161,10 @@
   grid-template-columns: minmax(140px, 220px) 64px minmax(0, 1fr);
   align-items: center;
   gap: 14px;
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
 }
 .entryName {
-  color: var(--paper);
+  color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -201,61 +172,66 @@
 .entryMeta {
   color: var(--muted);
 }
-
-/* ---------- Section header ---------- */
-.sectionHead {
-  margin-bottom: 28px;
+.failedNote {
+  color: var(--red);
 }
-.sectionTitleRow {
-  display: flex;
-  align-items: flex-start;
-  gap: 18px;
-}
-.sectionNum {
-  font-size: var(--step-4);
-  font-weight: 300;
+.chev {
+  padding-top: 4px;
+  color: var(--faint);
+  font-size: 20px;
   line-height: 1;
-  color: var(--brass);
 }
-.sectionTitle {
-  font-size: var(--step-3);
-  letter-spacing: -0.015em;
-  margin: 2px 0 8px;
+
+/* Cards under the overview */
+.activity {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
-.sectionNav {
-  display: flex;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 18px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-  font-size: var(--step--1);
+.activity li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 18px;
+  border-bottom: 1px solid var(--line);
+  font-size: var(--fs-xs);
 }
-.sectionNav a {
-  color: var(--muted);
+.activity li:last-child {
+  border-bottom: 0;
+}
+.activityName {
+  color: var(--text);
   text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.sectionNav a:hover {
-  color: var(--paper);
+.activityName:hover {
+  color: var(--accent-hi);
   text-decoration: underline;
+}
+.activitySection,
+.activityDate {
+  color: var(--muted);
+  white-space: nowrap;
+}
+.cardText,
+.cardEmpty {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  max-width: 60ch;
+}
+.cardEmpty {
+  padding: 18px;
 }
 
 @media (max-width: 640px) {
-  .pageTitle {
-    font-size: var(--step-3);
+  .stage {
+    grid-template-columns: 40px minmax(0, 1fr);
   }
-  .spineLink {
-    grid-template-columns: 56px minmax(0, 1fr);
-  }
-  .spineLink::before {
-    left: 55px;
-  }
-  .spineNum {
-    padding-right: 12px;
-    font-size: var(--step-2);
-  }
-  .spineBody {
-    padding-left: 14px;
+  .chev {
+    display: none;
   }
   .entry {
     grid-template-columns: minmax(0, 1fr) auto;
@@ -264,10 +240,10 @@
   .entryMeta {
     grid-column: 1 / -1;
   }
-  .sectionNum {
-    font-size: var(--step-3);
+  .activity li {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
-  .sectionTitle {
-    font-size: var(--step-2);
+  .activitySection {
+    display: none;
   }
 }

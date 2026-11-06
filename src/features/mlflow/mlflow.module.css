@@ -1,76 +1,75 @@
-.toolbar {
+/* Performance tab */
+.perf {
+  padding: 18px 18px 14px;
+}
+.perfHead {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px 20px;
   flex-wrap: wrap;
-  margin-bottom: 26px;
+  margin-bottom: 10px;
 }
-
-/* Pushes: one tab per version */
-.pushes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+.perfTitle {
+  font-weight: 600;
+  font-size: var(--fs-sm);
 }
-.push {
-  display: grid;
-  gap: 1px;
-  padding: 8px 14px;
-  border: 1px solid var(--rule-strong);
-  border-radius: var(--r-control);
-  text-decoration: none;
-}
-.push:hover {
-  background: var(--raised);
-}
-.push[aria-current="true"] {
-  border-color: var(--brass);
-  background: var(--brass-wash);
-}
-.pushVersion {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  color: var(--brass);
-}
-.pushMeta {
-  font-size: var(--step--1);
+.perfSub {
   color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.metricPick {
+  display: inline-flex;
+  padding: 3px;
+  gap: 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: rgba(5, 9, 18, 0.7);
+}
+.metricBtn {
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.metricBtn:hover {
+  color: var(--text);
+}
+.metricBtn[aria-checked="true"] {
+  background: linear-gradient(180deg, #4877ff, #2f5ce8);
+  color: #fff;
 }
 
-.runsSection {
-  margin-bottom: 22px;
-}
-.heading {
-  font-size: var(--step-1);
-  margin-bottom: 12px;
-}
+/* Tables */
 .tableWrap {
   overflow-x: auto;
-  border-top: 2px solid var(--rule-strong);
 }
-.runs {
+.table {
   width: 100%;
   min-width: 720px;
   border-collapse: collapse;
-  font-size: var(--step--1);
+  font-size: var(--fs-xs);
 }
-.runs th {
-  padding: 8px 12px;
+.table th {
+  padding: 10px 18px;
   text-align: left;
   font-weight: 500;
-  color: var(--muted);
-  border-bottom: 1px solid var(--rule-strong);
+  color: var(--label);
+  border-bottom: 1px solid var(--line);
 }
-.runs td {
-  padding: 11px 12px;
-  border-bottom: 1px solid var(--rule);
+.table td {
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
   vertical-align: top;
 }
-.num {
-  text-align: right;
+.table tbody tr:hover {
+  background: rgba(59, 108, 246, 0.07);
 }
-.runs th.num {
+.num,
+.table th.num {
   text-align: right;
 }
 .runName {
@@ -78,62 +77,60 @@
 }
 .runId {
   display: block;
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   color: var(--muted);
 }
 .params {
   color: var(--muted);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
 }
 .best {
-  color: var(--brass);
+  color: var(--green);
   font-weight: 600;
 }
 .final {
-  background: var(--brass-wash);
+  background: rgba(59, 108, 246, 0.12);
+  box-shadow: inset 2px 0 0 var(--accent-hi);
 }
 .finalTag {
   margin-left: 8px;
-  padding: 1px 7px;
+  padding: 1px 8px;
   border-radius: 999px;
-  background: var(--brass);
-  color: var(--on-brass);
-  font-size: 0.6875rem;
+  background: linear-gradient(180deg, #4877ff, #2f5ce8);
+  color: #fff;
+  font-size: 0.65rem;
   font-weight: 600;
   vertical-align: 1px;
+  box-shadow: 0 0 10px rgba(59, 108, 246, 0.5);
+}
+.pushLink {
+  font-family: var(--font-mono);
+  color: var(--accent-hi);
+  font-weight: 500;
+  text-decoration: none;
+}
+.pushLink:hover {
+  text-decoration: underline;
 }
 .legend {
-  margin-top: 8px;
-  font-size: var(--step--1);
+  padding: 10px 18px 14px;
+  font-size: var(--fs-xs);
   color: var(--muted);
-}
-
-.facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: 14px 20px;
-  margin: 0 0 22px;
-}
-.facts dt {
-  font-size: var(--step--1);
-  color: var(--muted);
-}
-.facts dd {
-  margin: 2px 0 0;
 }
 
 .warn {
-  margin-bottom: 22px;
+  margin-top: 12px;
   padding: 10px 12px;
   border-radius: var(--r-control);
-  background: var(--rose-wash);
-  color: #f1c3c1;
-  font-size: var(--step--1);
-  max-width: 72ch;
+  border: 1px solid rgba(240, 80, 90, 0.35);
+  background: rgba(240, 80, 90, 0.08);
+  color: #f6b3b7;
+  font-size: var(--fs-xs);
 }
 
 .dialogText {
   margin-bottom: 14px;
   color: var(--muted);
-  max-width: 70ch;
+  font-size: var(--fs-sm);
+  max-width: 72ch;
 }

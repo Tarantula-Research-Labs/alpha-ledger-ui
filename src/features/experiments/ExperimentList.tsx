@@ -28,8 +28,8 @@ export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
         <div className={x.firstRun}>
           <EmptyState title="No experiments yet.">
             <p>
-              Create your first experiment to begin. You&apos;ll go straight to its Data Pipeline, which asks where the data comes
-              from: a fresh pull from trl_datalake, or the frozen snapshot of an earlier experiment.
+              Create your first experiment to begin. You&apos;ll go straight to its Data Pipeline, where the first snippet connects your
+              notebook to the database.
             </p>
           </EmptyState>
         </div>

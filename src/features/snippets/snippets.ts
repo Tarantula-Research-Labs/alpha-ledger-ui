@@ -130,20 +130,156 @@ print("Pushed version", version)
 `;
 }
 
-export function datalakeSnippet(): string {
-  return `# Pull raw data from trl_datalake (Postgres).
-# Keep the password out of the notebook: set an environment variable first, e.g.
-#   TRL_DATALAKE_URL=postgresql+psycopg://user:password@host:5432/trl_datalake
-import os
+/** Step 1 of Data Pipeline: Luv's DBCONNECT class for the Postgres market data database. */
+export function dbConnectSnippet(): string {
+  return `"""Connects to the QuantX Postgres DB and loads NSE OHLCV data into pandas DataFrames."""
+
+import numpy as np
 import pandas as pd
-from sqlalchemy import create_engine
+import matplotlib.pyplot as plt
+from dotenv import load_dotenv
 
-engine = create_engine(os.environ["TRL_DATALAKE_URL"])
-df = pd.read_sql("""
-    -- your query: prices for the point-in-time Midcap 150 universe since 2018
-    SELECT ...
-""", engine)
+# Load .env into os.environ so the DB credentials can be read with os.getenv().
+load_dotenv()
+import os
+from sqlalchemy import create_engine, text
 
-# Then save it with the snapshot save snippet, so later sections read this frozen copy.
+
+class DBCONNECT:
+    """Wraps a SQLAlchemy engine for the market_data Postgres database."""
+
+    def __init__(self):
+        # Connection settings from .env (a missing key comes back as None).
+        self.PG_HOST = os.getenv("DB_HOST")
+        self.PG_PORT = os.getenv("DB_PORT")
+        self.PG_NAME = os.getenv("DB_NAME")
+        self.PG_USER = os.getenv("DB_USER")
+        self.PG_PASSWORD = os.getenv("DB_PASSWORD")
+
+        # URL format: dialect+driver://user:password@host:port/database
+        # create_engine() is lazy: it sets up a connection pool, and connections open on first use.
+        self.engine = create_engine(
+            f"postgresql+psycopg2://{self.PG_USER}:{self.PG_PASSWORD}@{self.PG_HOST}:{self.PG_PORT}/{self.PG_NAME}"
+        )
+
+    def test_connection(self):
+        """Print the Postgres server version to confirm the connection works."""
+        # \`with\` hands the connection back to the pool when the block ends, even on error.
+        with self.engine.connect() as conn:
+            # .scalar() returns the first column of the first row as a plain value.
+            print(conn.execute(text("SELECT version();")).scalar())
+
+    def query(self, sql, params=None):
+        """Run a SQL query (with optional :named params) and return a DataFrame."""
+        # With params, wrap in text() so :name placeholders are bound safely by the driver (no SQL injection).
+        if params is not None:
+            sql = text(sql)
+        return pd.read_sql(sql, self.engine, params=params)
+
+    def wrangle(self, tickers, timeframe):
+        """Load OHLCV bars from nse.ohlcv_<timeframe> for the tickers, indexed by IST datetime."""
+        # Allow a single ticker string like "TCS"; otherwise it would be split into ['T', 'C', 'S']
+        if isinstance(tickers, str):
+            tickers = [tickers]
+
+        # ANY(:tickers) matches against the whole list in one bound parameter (sent as a Postgres array).
+        # The table name comes from an f-string (table names can't be bound), so only pass trusted timeframes.
+        query = f"""
+            SELECT *
+            FROM nse.ohlcv_{timeframe}
+            WHERE ticker = ANY(:tickers)
+        """
+
+        df = self.query(query, params={"tickers": list(tickers)}).sort_values(by="timestamp")
+        df = df.rename(columns={"timestamp": "datetime"})
+
+        # Make sure the column is a real pandas datetime type, not strings.
+        df["datetime"] = pd.to_datetime(df["datetime"])
+
+        if timeframe == "daily":
+            # Daily bars are stored as IST midnight (= 18:30 UTC the previous day).
+            # Convert to IST before dropping the timezone, otherwise every date shifts one day early.
+            if df["datetime"].dt.tz is not None:
+                df["datetime"] = df["datetime"].dt.tz_convert("Asia/Kolkata").dt.tz_localize(None)
+            # Drop any time-of-day part so each bar is labelled with just its date.
+            df["datetime"] = df["datetime"].dt.normalize()
+        else:
+            # Intraday: treat naive timestamps as UTC, then show them in IST (NSE hours 09:15-15:30).
+            if df["datetime"].dt.tz is None:
+                df["datetime"] = df["datetime"].dt.tz_localize("UTC")
+
+            df["datetime"] = df["datetime"].dt.tz_convert("Asia/Kolkata")
+
+        # A datetime index allows slicing like df.loc["2024-01":"2024-06"] and .resample() / .rolling().
+        df = df.set_index("datetime")
+
+        return df
+
+
+# =============================================================================
+# NOTES: how DBCONNECT works
+# =============================================================================
+#
+# 1. What it does
+#    - Reads Postgres credentials from .env, builds one SQLAlchemy engine
+#      (with a connection pool) per DBCONNECT object, and returns query
+#      results as pandas DataFrames.
+#
+# 2. Connection settings (from .env; the password lives only in .env, which
+#    is git-ignored)
+#        DB_HOST=<your database host>
+#        DB_PORT=5432
+#        DB_NAME=market_data
+#        DB_USER=<your database user>
+#        DB_PASSWORD=<your password>
+#
+# 3. Data flow
+#        .env -> os.environ -> DBCONNECT.__init__ -> SQLAlchemy engine
+#             -> query()/wrangle() -> pd.read_sql -> pandas DataFrame
+#
+# 4. Usage
+#        db = DBCONNECT()
+#        db.test_connection()                       # prints Postgres version
+#        df = db.wrangle(["TCS", "INFY"], "daily")  # OHLCV indexed by datetime
+#        raw = db.query("SELECT * FROM nse.ohlcv_daily WHERE ticker = :t",
+#                       params={"t": "TCS"})
+#
+# 5. Expected database layout
+#    - Schema \`nse\` with one table per timeframe: nse.ohlcv_daily,
+#      nse.ohlcv_<other> ...
+#    - Each table needs at least \`ticker\` and \`timestamp\` columns, plus the
+#      OHLCV columns.
+#
+# 6. Timezone handling
+#    - Daily: stored as IST midnight (18:30 UTC the previous day). Converting
+#      to IST before dropping the timezone keeps the trading date correct.
+#    - Intraday: kept timezone-aware in Asia/Kolkata.
+#
+# 7. Things to keep in mind / possible improvements
+#    - Reuse one DBCONNECT object; each one creates its own connection pool.
+#    - Special characters in the password (@ : / # %) break the URL. Use
+#      sqlalchemy.engine.URL.create(...) or urllib.parse.quote_plus() to fix.
+#    - Check \`timeframe\` against an allow-list before passing untrusted values.
+#    - wrangle() loads a ticker's full history (no date filter). For large
+#      intraday tables, add WHERE timestamp BETWEEN :start AND :end.
+#    - With several tickers, rows are mixed in time order; use
+#      df.groupby("ticker") for per-ticker work.
+#    - numpy and matplotlib are imported but not used here.
+#    - Call self.engine.dispose() to close pooled connections when finished.
+# =============================================================================
+
+db = DBCONNECT()
+db.test_connection()
+`;
+}
+
+/** Step 2 of Data Pipeline: load the bars for the experiment's universe. */
+export function loadMarketDataSnippet(): string {
+  return `# Load daily OHLCV for your universe (for example the point-in-time Nifty Midcap 150 list).
+tickers = ["TCS", "INFY"]  # replace with your universe
+df = db.wrangle(tickers, "daily")
+
+# Keep datetime as a column so it is saved with the snapshot.
+df = df.reset_index()
 `;
 }

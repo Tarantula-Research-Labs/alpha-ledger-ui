@@ -7,20 +7,22 @@ import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } fro
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { datalakeSnippet, saveTableSnippet } from "@/features/snippets/snippets";
+import { dbConnectSnippet, loadMarketDataSnippet, saveTableSnippet } from "@/features/snippets/snippets";
 import { DatasetList } from "@/features/versions/DatasetList";
 import { SaveDialog } from "@/features/versions/SaveDialog";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 
 const FOLDER = "01_data_pipeline";
 
-// The two notebook steps that make a snapshot: read from the datalake, then save it here.
+// The notebook steps that make a snapshot: connect to the database, load the data, save it here.
 function PullSteps({ experiment }: { experiment: string }) {
   return (
     <div className={p.stack}>
-      <p className={p.muted}>1. Read from trl_datalake in your notebook.</p>
-      <CodeBlock code={datalakeSnippet()} />
-      <p className={p.muted}>2. Save it as this experiment&apos;s snapshot. Every later section reads this frozen copy.</p>
+      <p className={p.muted}>1. Connect to the database. Keep the credentials in a .env file next to your notebook.</p>
+      <CodeBlock code={dbConnectSnippet()} />
+      <p className={p.muted}>2. Load the data for this experiment.</p>
+      <CodeBlock code={loadMarketDataSnippet()} />
+      <p className={p.muted}>3. Save it as this experiment&apos;s snapshot. Every later section reads this frozen copy.</p>
       <CodeBlock code={saveTableSnippet(experiment, FOLDER, "snapshot")} />
     </div>
   );
@@ -70,7 +72,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
               </div>
             )}
             <Panel title="Datasets" icon flush actions={<Button onClick={() => setSaving(true)}>Save a new dataset</Button>}>
-              <DatasetList experiment={experiment} section={FOLDER} emptyText="Nothing saved yet. Run the two snippets above in your notebook to save the first snapshot." />
+              <DatasetList experiment={experiment} section={FOLDER} emptyText="Nothing saved yet. Run the snippets above in your notebook to save the first snapshot." />
             </Panel>
             {latest && (
               <p className={p.note}>

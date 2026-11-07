@@ -1,0 +1,43 @@
+.title {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.tabs {
+  margin: -4px 0 18px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line);
+}
+.form {
+  display: grid;
+}
+.submit {
+  width: 100%;
+  justify-content: center;
+  min-height: 42px;
+  margin-top: 4px;
+  font-size: var(--fs-md);
+}
+.switch {
+  margin-top: 16px;
+  font-size: var(--fs-sm);
+  color: var(--muted);
+  text-align: center;
+}
+.switch button {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent-hi);
+  font-weight: 500;
+  cursor: pointer;
+}
+.switch button:hover {
+  text-decoration: underline;
+}
+.note {
+  margin-top: 10px;
+  font-size: var(--fs-xs);
+  color: var(--faint);
+  text-align: center;
+}

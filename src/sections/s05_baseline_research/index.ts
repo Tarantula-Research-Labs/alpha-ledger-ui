@@ -7,6 +7,7 @@ export const section: SectionDefinition = {
   number: "05",
   title: "Baseline Research",
   active: true,
+  icon: "bars",
   blurb: "IC checks, rule-based momentum, Ridge and a decision tree, run in MLflow on your laptop and pushed here when done.",
   Panel: BaselineResearchPanel,
 };

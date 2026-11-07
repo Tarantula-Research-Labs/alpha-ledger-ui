@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ExperimentGuard } from "@/features/experiments/ExperimentGuard";
 import { SectionHeader } from "@/features/experiments/SectionHeader";
 import { SECTION_META, findSection } from "@/sections/registry";
 
@@ -21,11 +20,11 @@ export default async function SectionPage({ params }: Props) {
   const meta = SECTION_META.find((s) => s.folder === def.folder)!;
 
   return (
-    <ExperimentGuard experiment={experiment}>
+    <>
       <SectionHeader experiment={experiment} section={meta} sections={SECTION_META} />
       <Suspense>
         <Panel experiment={experiment} />
       </Suspense>
-    </ExperimentGuard>
+    </>
   );
 }

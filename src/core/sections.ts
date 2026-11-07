@@ -9,6 +9,7 @@ export interface SectionMeta {
   title: string;
   active: boolean; // false = exists but skipped for now
   blurb: string; // one line: what this section holds
+  icon: string; // icon name from core/ui/icons, e.g. "database"
 }
 
 export interface SectionPanelProps {

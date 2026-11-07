@@ -7,6 +7,7 @@ export const section: SectionDefinition = {
   number: "04",
   title: "Dataset Validation",
   active: false,
+  icon: "check",
   blurb: "Checks on the built features and labels before any model sees them. Skipped for now.",
   Panel: DatasetValidationPanel,
 };

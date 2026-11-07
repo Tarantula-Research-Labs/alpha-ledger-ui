@@ -3,13 +3,15 @@
 import Link from "next/link";
 import { formatDate, formatValue, folderLabel, versionHref } from "@/core/format";
 import type { SectionMeta } from "@/core/sections";
-import { CardRow, PageHeader, Panel, StatTiles, StatusMark, TwoColumn, VersionTicks, identClass, type Stat } from "@/core/ui";
+import { ButtonLink, KpiCard, KpiRow, PageHeader, Panel, StatTiles, StatusMark, TwoColumn, VersionTicks, identClass, type Stat } from "@/core/ui";
+import { ClockIcon, SectionIcon, TrendIcon, VersionsIcon } from "@/core/ui/icons";
 import { useLedger } from "@/data/LedgerProvider";
 import { allVersions, datasetsFor, findDataset, lastSaved, latestComplete } from "@/data/queries";
 import x from "./experiments.module.css";
 
-// One experiment at a glance: the pipeline on the left, key facts on the right, recent saves below.
-export function ExperimentOverview({ experiment, sections }: { experiment: string; sections: SectionMeta[] }) {
+// The dashboard of one experiment: headline numbers, how far each section has got, key facts and recent saves.
+// Research charts and reports will be added here once the first baseline is stored.
+export function ExperimentDashboard({ experiment, sections }: { experiment: string; sections: SectionMeta[] }) {
   const { experiments, datasets } = useLedger();
   const exp = experiments.find((e) => e.name === experiment);
   if (!exp) return null;
@@ -17,6 +19,7 @@ export function ExperimentOverview({ experiment, sections }: { experiment: strin
   const versions = allVersions(datasets, experiment);
   const failed = versions.filter((v) => v.status === "failed").length;
   const last = lastSaved(datasets, experiment);
+  const lastVersion = [...versions].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
 
   const snapshotDs = findDataset(datasets, experiment, "01_data_pipeline", "snapshot");
   const snapshot = snapshotDs && latestComplete(snapshotDs);
@@ -25,39 +28,27 @@ export function ExperimentOverview({ experiment, sections }: { experiment: strin
   const modelDs = findDataset(datasets, experiment, "06_model_development", "mlflow");
   const model = modelDs && latestComplete(modelDs);
   const finalRun = model?.mlflow?.runs.find((r) => r.id === model.mlflow?.finalRunId);
-  const split = model?.mlflow?.split ?? (() => {
-    const b = findDataset(datasets, experiment, "05_baseline_research", "mlflow");
-    return b && latestComplete(b)?.mlflow?.split;
-  })();
+  const baselineDs = findDataset(datasets, experiment, "05_baseline_research", "mlflow");
+  const baseline = baselineDs && latestComplete(baselineDs);
+  const split = model?.mlflow?.split ?? baseline?.mlflow?.split;
+  const sharpe = finalRun?.metrics.sharpe;
 
-  const stats: [Stat, Stat?][] = [
-    [
-      { label: "Versions saved", value: versions.length },
-      { label: "Last save", value: last ? formatDate(last) : "Nothing yet" },
-    ],
-    [
-      { label: "Datasets", value: datasetsFor(datasets, experiment).length },
-      { label: "Failed saves", value: failed, tone: failed ? "down" : undefined },
-    ],
-    [
-      { label: "Snapshot", value: snapshot ? `v${snapshot.ref.version}` : "None yet" },
-      { label: "Source", value: snapshot ? (snapshot.reusedFrom ? `Reused from ${snapshot.reusedFrom.experiment}` : "Fresh pull") : "Not chosen" },
-    ],
+  const facts: [Stat, Stat?][] = [
     [
       { label: "Label type", value: labels ? formatValue(labels.settings.label_type) : "Not set" },
       { label: "Label horizon", value: labels?.settings.horizon_days ? `${formatValue(labels.settings.horizon_days)} days` : "Not set" },
     ],
     [
-      { label: "Final model", value: finalRun ? <span className={identClass}>{finalRun.name}</span> : "Not chosen" },
-      {
-        label: "Final Sharpe",
-        value: finalRun?.metrics.sharpe !== undefined ? finalRun.metrics.sharpe.toFixed(2) : "–",
-        tone: finalRun?.metrics.sharpe !== undefined ? (finalRun.metrics.sharpe >= 0 ? "up" : "down") : undefined,
-      },
+      { label: "Walk-forward", value: split ? `Train ${split.trainDays}, test ${split.testDays}` : "Not recorded" },
+      { label: "Train/test gap", value: split ? `${split.gapDays} days` : "–" },
     ],
     [
-      { label: "Walk-forward", value: split ? `Train ${split.trainDays}, test ${split.testDays}` : "Not recorded" },
-      { label: "Gap", value: split ? `${split.gapDays} days` : "–" },
+      { label: "Final model", value: finalRun ? <span className={identClass}>{finalRun.name}</span> : "Not chosen" },
+      { label: "Optuna trials", value: model?.mlflow?.optunaTrials ?? "–" },
+    ],
+    [
+      { label: "Datasets", value: datasetsFor(datasets, experiment).length },
+      { label: "Failed saves", value: failed, tone: failed ? "down" : undefined },
     ],
   ];
 
@@ -66,16 +57,45 @@ export function ExperimentOverview({ experiment, sections }: { experiment: strin
   return (
     <>
       <PageHeader
-        back={{ href: "/experiments", label: "Back to experiments" }}
-        title={exp.name}
-        ident
-        sub={exp.description}
-        links={[{ href: `/experiments/${experiment}/01_data_pipeline`, label: "Open Data Pipeline" }]}
+        title="Dashboard"
+        sub={exp.description || undefined}
+        actions={
+          <>
+            <span className={x.headNote}>Created {formatDate(exp.createdAt)}</span>
+            <ButtonLink href={`/experiments/${experiment}/01_data_pipeline`} variant="primary">
+              Open Data Pipeline
+            </ButtonLink>
+          </>
+        }
       />
+
+      <KpiRow>
+        <KpiCard label="Versions saved" icon={<VersionsIcon />} value={versions.length} note={`Across ${datasetsFor(datasets, experiment).length} datasets`} />
+        <KpiCard
+          label="Last save"
+          icon={<ClockIcon />}
+          value={last ? formatDate(last) : "Nothing yet"}
+          note={lastVersion ? `${lastVersion.ref.dataset} v${lastVersion.ref.version}` : "Start with the Data Pipeline"}
+        />
+        <KpiCard
+          label="Snapshot in use"
+          icon={<SectionIcon name="database" />}
+          value={snapshot ? `v${snapshot.ref.version}` : "None yet"}
+          note={snapshot ? (snapshot.reusedFrom ? `Reused from ${snapshot.reusedFrom.experiment}` : "Fresh pull from trl_datalake") : "Choose a data source"}
+          tone={snapshot ? undefined : "warn"}
+        />
+        <KpiCard
+          label="Final model Sharpe"
+          icon={<TrendIcon />}
+          value={sharpe !== undefined ? sharpe.toFixed(2) : "–"}
+          note={finalRun ? finalRun.name : "No final model yet"}
+          tone={sharpe !== undefined ? (sharpe >= 0 ? "up" : "down") : undefined}
+        />
+      </KpiRow>
 
       <TwoColumn
         main={
-          <Panel title="Pipeline" icon flush actions={<span className={x.headNote}>Created {formatDate(exp.createdAt)}</span>}>
+          <Panel title="Pipeline progress" icon flush>
             <ol className={x.pipeline}>
               {sections.map((sec) => {
                 const ds = datasetsFor(datasets, experiment, sec.folder);
@@ -123,10 +143,14 @@ export function ExperimentOverview({ experiment, sections }: { experiment: strin
             </ol>
           </Panel>
         }
-        aside={<StatTiles rows={stats} />}
+        aside={
+          <>
+            <StatTiles rows={facts} />
+          </>
+        }
       />
 
-      <CardRow>
+      <div style={{ marginTop: 20 }}>
         <Panel title="Recent saves" icon flush>
           {recent.length === 0 ? (
             <p className={x.cardEmpty}>Nothing saved yet. Start with the Data Pipeline.</p>
@@ -145,7 +169,7 @@ export function ExperimentOverview({ experiment, sections }: { experiment: strin
             </ul>
           )}
         </Panel>
-      </CardRow>
+      </div>
     </>
   );
 }

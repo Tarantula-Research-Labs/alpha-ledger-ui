@@ -7,6 +7,7 @@ export const section: SectionDefinition = {
   number: "02",
   title: "Data Quality and Integrity",
   active: false,
+  icon: "shield",
   blurb: "Checks and cleaning of the snapshot. Skipped for now.",
   Panel: DataQualityPanel,
 };

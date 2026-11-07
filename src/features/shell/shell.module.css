@@ -1,12 +1,10 @@
-.frame {
-  min-height: 100dvh;
-}
+/* Shared frame pieces: wordmark, server light, user chip, and the hub top bar. */
 
 .skip {
   position: absolute;
   left: 12px;
   top: -48px;
-  z-index: 20;
+  z-index: 50;
   padding: 8px 12px;
   background: var(--accent);
   color: #fff;
@@ -16,7 +14,94 @@
   top: 12px;
 }
 
-/* ---------- Top bar ---------- */
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  text-decoration: none;
+}
+.wordmarkText {
+  font-size: 1.125rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  background: linear-gradient(180deg, #e3ebff 10%, #6f97ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  white-space: nowrap;
+}
+
+/* Server light */
+.server {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.server:hover {
+  color: var(--text);
+}
+.serverDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.server[data-state="up"] .serverDot {
+  background: var(--green);
+  box-shadow: 0 0 8px rgba(47, 210, 122, 0.7);
+}
+.server[data-state="down"] .serverDot {
+  background: var(--red);
+  box-shadow: 0 0 8px rgba(240, 80, 90, 0.6);
+}
+
+/* User chip */
+.userWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-sm);
+  font-weight: 500;
+}
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #5b8bff, #2a4fc9);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(91, 139, 255, 0.25);
+}
+.signOut {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--r-control);
+  color: var(--muted);
+}
+.signOut:hover {
+  background: var(--panel-hi);
+  color: var(--text);
+}
+
+/* ---------- Hub top bar ---------- */
+.hub {
+  min-height: 100dvh;
+}
 .bar {
   position: sticky;
   top: 0;
@@ -35,25 +120,6 @@
   min-height: 64px;
   padding: 0 var(--gutter);
 }
-
-.wordmark {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  width: fit-content;
-  text-decoration: none;
-}
-.wordmarkText {
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  background: linear-gradient(180deg, #e3ebff 10%, #6f97ff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  text-shadow: 0 0 18px rgba(91, 139, 255, 0.35);
-}
-
 .nav {
   display: flex;
   gap: 6px;
@@ -81,7 +147,6 @@
   border-color: var(--line-strong);
   box-shadow: inset 0 1px 0 rgba(150, 180, 255, 0.12), 0 0 16px rgba(59, 108, 246, 0.18);
 }
-
 .right {
   display: flex;
   align-items: center;
@@ -97,66 +162,7 @@
   white-space: nowrap;
   cursor: help;
 }
-.server {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  font-size: var(--fs-xs);
-  text-decoration: none;
-  white-space: nowrap;
-}
-.server:hover {
-  color: var(--text);
-}
-.serverDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--faint);
-}
-.server[data-state="up"] .serverDot {
-  background: var(--green);
-  box-shadow: 0 0 8px rgba(47, 210, 122, 0.7);
-}
-.server[data-state="down"] .serverDot {
-  background: var(--red);
-  box-shadow: 0 0 8px rgba(240, 80, 90, 0.6);
-}
-.user {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--fs-sm);
-  font-weight: 500;
-}
-.avatar {
-  display: inline-grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #5b8bff, #2a4fc9);
-  color: #fff;
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  box-shadow: 0 0 0 2px rgba(91, 139, 255, 0.25);
-}
-.signOut {
-  display: inline-grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: var(--r-control);
-  color: var(--muted);
-}
-.signOut:hover {
-  background: var(--panel-hi);
-  color: var(--text);
-}
-
-/* ---------- Page area ---------- */
-.main {
+.hubMain {
   max-width: calc(var(--content) + 2 * var(--gutter));
   margin: 0 auto;
   padding: 32px var(--gutter) 64px;
@@ -168,8 +174,7 @@
     display: none;
   }
 }
-
-@media (max-width: 860px) {
+@media (max-width: 760px) {
   .barInner {
     grid-template-columns: 1fr auto;
     padding-top: 10px;
@@ -178,28 +183,8 @@
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
-    overflow-x: auto;
   }
-  .navLink {
-    padding: 7px 10px;
-  }
-  .main {
-    padding-top: 22px;
-  }
-}
-
-@media (max-width: 480px) {
   .sample {
     display: none;
-  }
-  .navLink span {
-    display: none;
-  }
-  .nav {
-    justify-content: space-between;
-  }
-  .navLink {
-    flex: 1;
-    justify-content: center;
   }
 }

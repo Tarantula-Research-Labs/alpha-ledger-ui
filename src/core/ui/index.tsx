@@ -110,6 +110,37 @@ export function StatTiles({ rows }: { rows: [Stat, Stat?][] }) {
   );
 }
 
+/* ---------- KPI card: one big number with a label and a note ---------- */
+
+export function KpiCard({
+  label,
+  value,
+  note,
+  icon,
+  tone,
+}: {
+  label: string;
+  value: ReactNode;
+  note?: ReactNode;
+  icon?: ReactNode;
+  tone?: "up" | "down" | "warn";
+}) {
+  return (
+    <div className={s.kpi}>
+      <div className={s.kpiHead}>
+        <span className={s.kpiLabel}>{label}</span>
+        {icon && <span className={s.kpiIcon}>{icon}</span>}
+      </div>
+      <div className={[s.kpiValue, tone ? s[tone] : ""].join(" ")}>{value}</div>
+      {note && <div className={s.kpiNote}>{note}</div>}
+    </div>
+  );
+}
+
+export function KpiRow({ children }: { children: ReactNode }) {
+  return <div className={s.kpiRow}>{children}</div>;
+}
+
 /* ---------- Page header ---------- */
 
 export function PageHeader({

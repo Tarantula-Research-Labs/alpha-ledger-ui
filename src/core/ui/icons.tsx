@@ -1,7 +1,7 @@
-// Small line icons used in the navigation. 16px, drawn with currentColor.
+// Small line icons. 18px, drawn with currentColor.
 const base = {
-  width: 16,
-  height: 16,
+  width: 18,
+  height: 18,
   viewBox: "0 0 24 24",
   fill: "none",
   stroke: "currentColor",
@@ -14,8 +14,10 @@ const base = {
 
 export const DashboardIcon = () => (
   <svg {...base}>
-    <rect x="3" y="4" width="18" height="13" rx="2" />
-    <path d="M8 21h8M12 17v4" />
+    <rect x="3" y="3" width="7" height="9" rx="1.5" />
+    <rect x="14" y="3" width="7" height="5" rx="1.5" />
+    <rect x="14" y="12" width="7" height="9" rx="1.5" />
+    <rect x="3" y="16" width="7" height="5" rx="1.5" />
   </svg>
 );
 
@@ -37,3 +39,99 @@ export const SignOutIcon = () => (
     <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10" />
   </svg>
 );
+
+export const MenuIcon = () => (
+  <svg {...base}>
+    <path d="M4 6h16M4 12h16M4 18h16" />
+  </svg>
+);
+
+export const BackIcon = () => (
+  <svg {...base}>
+    <path d="M15 18l-6-6 6-6" />
+  </svg>
+);
+
+export const VersionsIcon = () => (
+  <svg {...base}>
+    <path d="M12 3l9 5-9 5-9-5 9-5z" />
+    <path d="M3 13l9 5 9-5" />
+  </svg>
+);
+
+export const ClockIcon = () => (
+  <svg {...base}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 2" />
+  </svg>
+);
+
+export const TrendIcon = () => (
+  <svg {...base}>
+    <path d="M3 17l6-6 4 4 8-8" />
+    <path d="M15 7h6v6" />
+  </svg>
+);
+
+export const LineageIcon = () => (
+  <svg {...base}>
+    <circle cx="6" cy="6" r="2.5" />
+    <circle cx="6" cy="18" r="2.5" />
+    <circle cx="18" cy="12" r="2.5" />
+    <path d="M8.5 6H12a3 3 0 0 1 3 3v.5M8.5 18H12a3 3 0 0 0 3-3v-.5" />
+  </svg>
+);
+
+export const LockIcon = () => (
+  <svg {...base}>
+    <rect x="4" y="10" width="16" height="11" rx="2" />
+    <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+  </svg>
+);
+
+export const CodeIcon = () => (
+  <svg {...base}>
+    <path d="M8 8l-4 4 4 4M16 8l4 4-4 4M14 5l-4 14" />
+  </svg>
+);
+
+/* Section icons, chosen by name in each section's index.ts */
+const SECTION_ICONS: Record<string, () => React.JSX.Element> = {
+  database: () => (
+    <svg {...base}>
+      <ellipse cx="12" cy="5.5" rx="8" ry="3" />
+      <path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13" />
+      <path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" />
+    </svg>
+  ),
+  shield: () => (
+    <svg {...base}>
+      <path d="M12 3l8 3v6c0 4.5-3.4 8.2-8 9-4.6-.8-8-4.5-8-9V6l8-3z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  ),
+  layers: VersionsIcon,
+  check: () => (
+    <svg {...base}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8 12l3 3 5-6" />
+    </svg>
+  ),
+  bars: () => (
+    <svg {...base}>
+      <path d="M4 20V10M10 20V4M16 20v-7M22 20H2" />
+    </svg>
+  ),
+  cpu: () => (
+    <svg {...base}>
+      <rect x="6" y="6" width="12" height="12" rx="2" />
+      <rect x="9.5" y="9.5" width="5" height="5" rx="1" />
+      <path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4" />
+    </svg>
+  ),
+};
+
+export function SectionIcon({ name }: { name: string }) {
+  const Icon = SECTION_ICONS[name] ?? VersionsIcon;
+  return <Icon />;
+}

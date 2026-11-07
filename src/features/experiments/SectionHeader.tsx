@@ -1,7 +1,7 @@
 import type { SectionMeta } from "@/core/sections";
 import { PageHeader } from "@/core/ui";
 
-// Top of every section page: back to the experiment, the section's name and job, and its neighbours.
+// Top of every section page: the section's name and job, and links to its neighbours.
 export function SectionHeader({ experiment, section, sections }: { experiment: string; section: SectionMeta; sections: SectionMeta[] }) {
   const i = sections.findIndex((s) => s.folder === section.folder);
   const prev = sections[i - 1];
@@ -15,12 +15,10 @@ export function SectionHeader({ experiment, section, sections }: { experiment: s
 
   return (
     <PageHeader
-      back={{ href: `/experiments/${experiment}`, label: `Back to ${experiment}` }}
       title={
         <>
           <span style={{ color: "var(--label)", marginRight: 10 }}>{section.number}</span>
           {section.title}
-          <span style={{ color: "var(--muted)", fontWeight: 400, fontSize: "var(--fs-sm)", marginLeft: 12 }}>{experiment}</span>
         </>
       }
       sub={section.blurb}

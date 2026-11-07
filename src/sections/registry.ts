@@ -12,12 +12,13 @@ import { section as s06 } from "./s06_model_development";
 export const SECTIONS: SectionDefinition[] = [s01, s02, s03, s04, s05, s06];
 
 /** The same list without components, safe to pass to any screen. */
-export const SECTION_META: SectionMeta[] = SECTIONS.map(({ folder, number, title, active, blurb }) => ({
+export const SECTION_META: SectionMeta[] = SECTIONS.map(({ folder, number, title, active, blurb, icon }) => ({
   folder,
   number,
   title,
   active,
   blurb,
+  icon,
 }));
 
 export function findSection(folder: string): SectionDefinition | undefined {

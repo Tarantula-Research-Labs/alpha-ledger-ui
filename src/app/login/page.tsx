@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import { LoginForm } from "@/features/auth/LoginForm";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Sign in" };
-
+// Old address: sign-in now happens in a popup on the landing page.
 export default function LoginPage() {
-  return <LoginForm />;
+  redirect("/?auth=login");
 }

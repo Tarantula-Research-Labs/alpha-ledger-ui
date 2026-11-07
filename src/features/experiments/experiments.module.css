@@ -247,3 +247,116 @@
     display: none;
   }
 }
+
+/* ---------- Experiment cards ---------- */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(340px, 100%), 1fr));
+  gap: 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cards > li {
+  display: grid;
+}
+.card,
+.newCard {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: linear-gradient(160deg, rgba(20, 36, 70, 0.75), rgba(9, 15, 29, 0.95));
+  box-shadow: inset 0 1px 0 rgba(130, 170, 255, 0.06), 0 12px 32px rgba(0, 0, 0, 0.3);
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+.card:hover {
+  border-color: var(--accent-hi);
+  box-shadow: inset 0 1px 0 rgba(130, 170, 255, 0.1), 0 0 28px rgba(59, 108, 246, 0.25);
+}
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.cardName {
+  font-weight: 600;
+  font-size: var(--fs-md);
+  overflow-wrap: anywhere;
+}
+.cardOpen {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  color: var(--accent-hi);
+  font-size: 18px;
+  line-height: 1;
+}
+.card:hover .cardOpen {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.cardDesc {
+  color: var(--muted);
+  font-size: var(--fs-sm);
+  min-height: 2.6em;
+}
+.cardCoverage {
+  display: grid;
+  gap: 6px;
+}
+.cardLabel {
+  display: block;
+  font-size: var(--fs-xs);
+  color: var(--label);
+  font-weight: 500;
+}
+.cardStats {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr 1fr;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+.cardValue {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--fs-sm);
+}
+.newCard {
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  min-height: 250px;
+  border: 1px dashed var(--line-strong);
+  background: rgba(9, 15, 29, 0.5);
+  cursor: pointer;
+  font: inherit;
+}
+.newCard:hover {
+  border-color: var(--accent-hi);
+  background: var(--accent-soft);
+}
+.newPlus {
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #4877ff, #2a4fc9);
+  color: #fff;
+  font-size: 24px;
+  box-shadow: 0 0 18px rgba(59, 108, 246, 0.45);
+}
+.newTitle {
+  font-weight: 600;
+}

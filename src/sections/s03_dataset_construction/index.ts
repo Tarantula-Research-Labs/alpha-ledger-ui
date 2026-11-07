@@ -7,6 +7,7 @@ export const section: SectionDefinition = {
   number: "03",
   title: "Dataset Construction",
   active: true,
+  icon: "layers",
   blurb: "Features, one dataset per group, and labels. Built in your notebook from the snapshot, saved separately, joined only when loaded.",
   Panel: DatasetConstructionPanel,
 };

@@ -64,9 +64,6 @@ export function DatasetList({
                   <th scope="col" className={v.num}>
                     Rows
                   </th>
-                  <th scope="col" className={v.num}>
-                    Columns
-                  </th>
                   <th scope="col">Built from</th>
                   <th scope="col">Notes</th>
                 </tr>
@@ -86,7 +83,6 @@ export function DatasetList({
                       </td>
                       <td className={v.nowrap}>{formatDate(ver.createdAt)}</td>
                       <td className={v.num}>{ver.rows !== undefined ? formatCount(ver.rows) : "–"}</td>
-                      <td className={v.num}>{ver.columns ? ver.columns.length : "–"}</td>
                       <td className={v.inputs}>
                         {ver.reusedFrom ? (
                           <>Reused: {refLabel(ver.reusedFrom, experiment)}</>

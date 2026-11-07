@@ -31,17 +31,16 @@
 }
 .versions {
   width: 100%;
-  min-width: 820px;
+  min-width: 640px;
   border-collapse: collapse;
   table-layout: fixed; /* same columns for every dataset, so the rows line up */
   font-size: var(--fs-xs);
 }
-.versions th:nth-child(1) { width: 80px; }
+.versions th:nth-child(1) { width: 70px; }
 .versions th:nth-child(2) { width: 104px; }
 .versions th:nth-child(3) { width: 108px; }
-.versions th:nth-child(4) { width: 96px; }
-.versions th:nth-child(5) { width: 80px; }
-.versions th:nth-child(6) { width: 24%; }
+.versions th:nth-child(4) { width: 90px; }
+.versions th:nth-child(5) { width: 32%; }
 .versions th {
   padding: 8px 18px;
   text-align: left;

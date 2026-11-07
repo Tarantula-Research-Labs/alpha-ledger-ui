@@ -7,6 +7,7 @@ export const section: SectionDefinition = {
   number: "01",
   title: "Data Pipeline",
   active: true,
+  icon: "database",
   blurb: "A frozen snapshot of the raw data from trl_datalake. Every later section reads this snapshot, never the live datalake.",
   Panel: DataPipelinePanel,
 };

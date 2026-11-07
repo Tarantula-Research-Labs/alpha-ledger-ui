@@ -78,7 +78,7 @@ export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
               +
             </span>
             <span className={x.newTitle}>New experiment</span>
-            <span className={x.cardDesc}>Start fresh, or reuse the frozen data of an earlier experiment.</span>
+            <span className={x.cardDesc}>Name it, then pull its data fresh from trl_datalake.</span>
           </button>
         </li>
       </ul>

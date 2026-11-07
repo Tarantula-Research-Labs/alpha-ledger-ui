@@ -40,7 +40,6 @@ export interface DatasetVersion {
   inputs: VersionRef[]; // versions this one was built from
   codeVersion?: string; // git commit
   notes?: string;
-  reusedFrom?: VersionRef; // Data Pipeline: snapshot reused from a past experiment
   mlflow?: MlflowPush; // Baseline Research / Model Development pushes
 }
 

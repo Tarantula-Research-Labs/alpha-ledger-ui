@@ -84,9 +84,7 @@ export function DatasetList({
                       <td className={v.nowrap}>{formatDate(ver.createdAt)}</td>
                       <td className={v.num}>{ver.rows !== undefined ? formatCount(ver.rows) : "–"}</td>
                       <td className={v.inputs}>
-                        {ver.reusedFrom ? (
-                          <>Reused: {refLabel(ver.reusedFrom, experiment)}</>
-                        ) : ver.inputs.length ? (
+                        {ver.inputs.length ? (
                           ver.inputs.map((i) => refLabel(i, experiment)).join(", ")
                         ) : (
                           "trl_datalake"

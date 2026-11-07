@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
-import { formatCount, formatDateTime, formatValue, refLabel, versionHref } from "@/core/format";
+import { formatCount, formatDateTime, formatValue } from "@/core/format";
 import type { DatasetVersion } from "@/core/types";
 import { CodeBlock, StatTiles, StatusMark, identClass, type Stat } from "@/core/ui";
 import { loadTableSnippet } from "@/features/snippets/snippets";
@@ -27,16 +26,7 @@ export function VersionFacts({ version }: { version: DatasetVersion }) {
   }
   rows.push([
     { label: "Code version", value: <span className={identClass}>{version.codeVersion ?? "not recorded"}</span> },
-    version.reusedFrom
-      ? {
-          label: "Reused from",
-          value: (
-            <Link href={versionHref(version.reusedFrom)} className={`${v.inlineLink} ${identClass}`}>
-              {refLabel(version.reusedFrom, r.experiment)}
-            </Link>
-          ),
-        }
-      : { label: "Built from", value: version.inputs.length ? `${version.inputs.length} input${version.inputs.length > 1 ? "s" : ""}` : "trl_datalake" },
+    { label: "Built from", value: version.inputs.length ? `${version.inputs.length} input${version.inputs.length > 1 ? "s" : ""}` : "trl_datalake" },
   ]);
 
   return (

@@ -82,7 +82,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
           label="Snapshot in use"
           icon={<SectionIcon name="database" />}
           value={snapshot ? `v${snapshot.ref.version}` : "None yet"}
-          note={snapshot ? (snapshot.reusedFrom ? `Reused from ${snapshot.reusedFrom.experiment}` : "Fresh pull from trl_datalake") : "Choose a data source"}
+          note={snapshot ? "Fresh pull from trl_datalake" : "Pull it in the Data Pipeline"}
           tone={snapshot ? undefined : "warn"}
         />
         <KpiCard

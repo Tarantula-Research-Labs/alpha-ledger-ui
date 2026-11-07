@@ -1,36 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { formatCount, formatDate, formatValue, refLabel } from "@/core/format";
+import { formatCount, formatDate, formatValue } from "@/core/format";
 import type { SectionPanelProps } from "@/core/sections";
 import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } from "@/core/ui";
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { datalakeSnippet } from "@/features/snippets/snippets";
+import { datalakeSnippet, saveTableSnippet } from "@/features/snippets/snippets";
 import { DatasetList } from "@/features/versions/DatasetList";
 import { SaveDialog } from "@/features/versions/SaveDialog";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
-import { SourceChoice } from "./SourceChoice";
 
 const FOLDER = "01_data_pipeline";
 
+// The two notebook steps that make a snapshot: read from the datalake, then save it here.
+function PullSteps({ experiment }: { experiment: string }) {
+  return (
+    <div className={p.stack}>
+      <p className={p.muted}>1. Read from trl_datalake in your notebook.</p>
+      <CodeBlock code={datalakeSnippet()} />
+      <p className={p.muted}>2. Save it as this experiment&apos;s snapshot. Every later section reads this frozen copy.</p>
+      <CodeBlock code={saveTableSnippet(experiment, FOLDER, "snapshot")} />
+    </div>
+  );
+}
+
+// Every experiment pulls its own data fresh from trl_datalake.
+// (Cloning an experiment with its data is planned for phase 2.)
 export function DataPipelinePanel({ experiment }: SectionPanelProps) {
   const { datasets } = useLedger();
   const here = datasetsFor(datasets, experiment, FOLDER);
   const snapshot = here.find((d) => d.name === "snapshot");
   const latest = snapshot ? latestComplete(snapshot) : undefined;
 
-  // Opening an experiment with no snapshot asks straight away where its data comes from.
-  const [choosing, setChoosing] = useState(here.length === 0);
   const [saving, setSaving] = useState(false);
-  const [connecting, setConnecting] = useState(false);
+  const [pulling, setPulling] = useState(false);
 
   const s = latest?.settings ?? {};
   const stats: [Stat, Stat?][] = [
     [
       { label: "Snapshot in use", value: latest ? `v${latest.ref.version}` : "None yet", tone: latest ? undefined : "warn" },
-      { label: "Source", value: latest ? (latest.reusedFrom ? "Same as a past experiment" : "Fresh pull") : "Not chosen" },
+      { label: "Source", value: "trl_datalake" },
     ],
     [
       { label: "Rows", value: latest?.rows !== undefined ? formatCount(latest.rows) : "–" },
@@ -51,37 +62,19 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       <TwoColumn
         main={
           <>
-            <Panel
-              title="Datasets"
-              icon
-              flush
-              actions={
-                <>
-                  <Button onClick={() => setSaving(true)}>Save a new dataset</Button>
-                  <Button variant={latest ? "default" : "primary"} onClick={() => setChoosing(true)}>
-                    Choose data source
-                  </Button>
-                </>
-              }
-            >
-              <DatasetList
-                experiment={experiment}
-                section={FOLDER}
-                emptyText="Reuse a snapshot from a past experiment, or pull fresh data from trl_datalake and save it here."
-              />
+            {!latest && (
+              <div style={{ marginBottom: 20 }}>
+                <Panel title="Pull this experiment's data" icon>
+                  <PullSteps experiment={experiment} />
+                </Panel>
+              </div>
+            )}
+            <Panel title="Datasets" icon flush actions={<Button onClick={() => setSaving(true)}>Save a new dataset</Button>}>
+              <DatasetList experiment={experiment} section={FOLDER} emptyText="Nothing saved yet. Run the two snippets above in your notebook to save the first snapshot." />
             </Panel>
             {latest && (
               <p className={p.note}>
-                {latest.reusedFrom ? (
-                  <>
-                    Snapshot v{latest.ref.version} is <strong>reused from {refLabel(latest.reusedFrom)}</strong> in {latest.reusedFrom.experiment}.
-                    Identical data, nothing re-fetched.
-                  </>
-                ) : (
-                  <>
-                    Snapshot v{latest.ref.version} is <strong>a fresh pull from trl_datalake</strong>. Every later section reads this frozen copy.
-                  </>
-                )}
+                Snapshot v{latest.ref.version} is <strong>a fresh pull from trl_datalake</strong>. Every later section reads this frozen copy.
               </p>
             )}
           </>
@@ -89,18 +82,19 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
         aside={
           <>
             <StatTiles rows={stats} />
-            <Panel title="trl_datalake" icon>
-              <p className={p.text}>For a fresh pull, read from the datalake in your notebook, then save it with the snapshot save snippet.</p>
-              <Button onClick={() => setConnecting(true)}>Connection snippet</Button>
-            </Panel>
+            {latest && (
+              <Panel title="trl_datalake" icon>
+                <p className={p.text}>Need newer data? Pull again and save it as the next snapshot version. Earlier versions stay as they are.</p>
+                <Button onClick={() => setPulling(true)}>Pull a new snapshot</Button>
+              </Panel>
+            )}
           </>
         }
       />
 
-      <Dialog open={connecting} onClose={() => setConnecting(false)} title="Connect to trl_datalake" wide>
-        <CodeBlock code={datalakeSnippet()} />
+      <Dialog open={pulling} onClose={() => setPulling(false)} title="Pull a new snapshot" wide>
+        <PullSteps experiment={experiment} />
       </Dialog>
-      <SourceChoice open={choosing} onClose={() => setChoosing(false)} experiment={experiment} />
       <SaveDialog open={saving} onClose={() => setSaving(false)} experiment={experiment} section={FOLDER} />
       <VersionDrawer experiment={experiment} section={FOLDER} />
     </>

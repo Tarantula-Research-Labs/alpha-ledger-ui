@@ -48,7 +48,7 @@
   color: var(--label);
   border-top: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
-  background: rgba(13, 22, 41, 0.55);
+  background: var(--head-row-bg);
 }
 .versions td {
   padding: 12px 18px;
@@ -59,10 +59,10 @@
   border-bottom: 0;
 }
 .versions tbody tr:hover {
-  background: rgba(59, 108, 246, 0.07);
+  background: var(--row-hover);
 }
 .versions tbody tr.selected {
-  background: rgba(59, 108, 246, 0.16);
+  background: var(--row-selected);
   box-shadow: inset 2px 0 0 var(--accent-hi);
 }
 .num,
@@ -151,7 +151,7 @@
   padding: 2px 8px;
   border-radius: 4px;
   border: 1px solid var(--line);
-  background: rgba(13, 22, 41, 0.8);
+  background: var(--chip-bg);
   color: var(--muted);
   font-size: 0.72rem;
 }

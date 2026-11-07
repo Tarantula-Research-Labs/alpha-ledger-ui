@@ -9,6 +9,15 @@ It shows every experiment, every saved version and what each was built from, and
 npm install
 ```
 
+Login uses Clerk. Put your keys in `.env.local` (never committed):
+
+```
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+```
+
+Experiments, the workspace and Server status need a signed-in user; the landing page doesn't.
+
 ## Run
 
 ```
@@ -26,11 +35,11 @@ npm run check:structure   # folder rules below
 npm run build             # production build
 ```
 
-## Sample data
+## Not saved yet
 
-Experiments, versions, MLflow runs and lineage are **sample data** (`src/data/sample.ts`) until the backend has the
-matching endpoints. The sidebar says so. Server status is always live.
-When an endpoint lands, only `src/data/LedgerProvider.tsx` changes; no screen does.
+Until the UI is connected to the FastAPI server, experiments you create live only in the browser tab and disappear
+on reload; the top bar and sidebar say so. Server status is always live.
+When the endpoints are connected, only `src/data/LedgerProvider.tsx` changes; no screen does.
 
 ## Folder map
 
@@ -38,11 +47,11 @@ When an endpoint lands, only `src/data/LedgerProvider.tsx` changes; no screen do
 src/
   app/          pages; each one only puts features and sections together
   core/         shared plumbing: types, formatting, server calls, UI kit; knows no section
-  data/         where screens get experiments and versions (sample now, FastAPI later)
+  data/         where screens get experiments and versions (in-memory now, FastAPI next)
   features/     app-wide features
     shell/        top navigation bar and page frame
     dashboard/    home page (blank until the first baseline is stored)
-    auth/         sign-in (not connected yet)
+    auth/         Log in / Sign up through Clerk (popup, redirects, account menu)
     experiments/  experiment list, new experiment, the overview, section headers
     versions/     dataset and version tables, version details, save snippets
     lineage/      built from / used by

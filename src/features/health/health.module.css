@@ -68,7 +68,7 @@
   margin: 10px 0 0;
   padding: 10px 12px;
   border-radius: var(--r-control);
-  background: #050912;
+  background: var(--code-bg);
   border: 1px solid var(--line);
   overflow-x: auto;
   font-size: 0.8rem;

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { formatDate } from "@/core/format";
 import type { SectionMeta } from "@/core/sections";
-import { Button, PageHeader, identClass } from "@/core/ui";
+import { EmptyState, PageHeader, identClass } from "@/core/ui";
 import { useLedger } from "@/data/LedgerProvider";
 import { allVersions, datasetsFor, lastSaved } from "@/data/queries";
 import { CreateExperimentDialog } from "./CreateExperimentDialog";
@@ -22,12 +22,18 @@ export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
       <PageHeader
         title="Your experiments"
         sub="Pick an experiment to open its dashboard. Each one keeps its own frozen data, features, labels and models, and nothing saved is ever overwritten."
-        actions={
-          <Button variant="primary" onClick={() => setCreating(true)}>
-            New experiment
-          </Button>
-        }
       />
+
+      {rows.length === 0 && (
+        <div className={x.firstRun}>
+          <EmptyState title="No experiments yet.">
+            <p>
+              Create your first experiment to begin. You&apos;ll go straight to its Data Pipeline, which asks where the data comes
+              from: a fresh pull from trl_datalake, or the frozen snapshot of an earlier experiment.
+            </p>
+          </EmptyState>
+        </div>
+      )}
 
       <ul className={x.cards}>
         {rows.map((e) => {

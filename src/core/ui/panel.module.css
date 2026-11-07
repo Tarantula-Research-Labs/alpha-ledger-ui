@@ -10,7 +10,7 @@
   border: 1px solid var(--line);
   border-left: 2px solid var(--accent-hi);
   border-radius: 0 var(--r-control) var(--r-control) 0;
-  background: rgba(13, 22, 41, 0.6);
+  background: var(--note-bg);
   color: var(--muted);
   font-size: var(--fs-sm);
 }
@@ -40,7 +40,7 @@
   height: 6px;
   border-radius: 50%;
   background: var(--accent-hi);
-  box-shadow: 0 0 6px rgba(91, 139, 255, 0.7);
+  box-shadow: var(--dot-glow);
 }
 .rules li:first-child {
   color: var(--text);
@@ -59,13 +59,13 @@
   padding: 14px 16px;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
-  background: rgba(7, 12, 24, 0.6);
+  background: var(--choice-bg);
   cursor: pointer;
 }
 .choice:has(input:checked) {
   border-color: var(--accent-hi);
   background: var(--accent-soft);
-  box-shadow: 0 0 16px rgba(59, 108, 246, 0.2);
+  box-shadow: var(--choice-glow);
 }
 .choice input {
   margin-top: 4px;

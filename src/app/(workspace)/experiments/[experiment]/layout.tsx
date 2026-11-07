@@ -1,8 +1,9 @@
+import { requireSignedIn } from "@/features/auth/requireSignedIn";
 import { ExperimentGuard } from "@/features/experiments/ExperimentGuard";
 import { WorkspaceShell } from "@/features/shell/WorkspaceShell";
 import { SECTION_META } from "@/sections/registry";
 
-// One experiment's workspace: left sidebar with its dashboard and every section.
+// One experiment's workspace: left sidebar with its dashboard and every section. Signed-in users only.
 export default async function WorkspaceLayout({
   children,
   params,
@@ -10,6 +11,7 @@ export default async function WorkspaceLayout({
   children: React.ReactNode;
   params: Promise<{ experiment: string }>;
 }) {
+  await requireSignedIn();
   const { experiment } = await params;
   return (
     <WorkspaceShell experiment={experiment} sections={SECTION_META}>

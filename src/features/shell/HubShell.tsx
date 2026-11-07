@@ -5,21 +5,24 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { LedgerMark } from "@/core/ui/LedgerMark";
 import { ExperimentsIcon, StatusIcon } from "@/core/ui/icons";
-import { USING_SAMPLE_DATA } from "@/data/LedgerProvider";
+import { useTheme } from "@/core/theme";
+import { CONNECTED_TO_SERVER } from "@/data/LedgerProvider";
 import { ServerDot } from "./ServerDot";
+import { ThemeToggle } from "./ThemeToggle";
 import { UserChip } from "./UserChip";
 import s from "./shell.module.css";
 
 // Frame for pages outside any one experiment: the experiments list and server status.
 export function HubShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const { theme } = useTheme();
   const nav = [
     { href: "/experiments", label: "Experiments", Icon: ExperimentsIcon },
     { href: "/status", label: "Server status", Icon: StatusIcon },
   ];
 
   return (
-    <div className={s.hub}>
+    <div className={s.hub} data-theme={theme}>
       <a href="#main" className={s.skip}>
         Skip to content
       </a>
@@ -38,11 +41,12 @@ export function HubShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className={s.right}>
-            {USING_SAMPLE_DATA && (
-              <span className={s.sample} title="Experiments and versions are examples until the server saves real ones. Changes reset when you reload.">
-                Sample data
+            {!CONNECTED_TO_SERVER && (
+              <span className={s.notSaved} title="Experiments you create here stay in this browser tab only and disappear when you reload, until the app is connected to the server.">
+                Not saved yet
               </span>
             )}
+            <ThemeToggle />
             <ServerDot />
             <UserChip />
           </div>

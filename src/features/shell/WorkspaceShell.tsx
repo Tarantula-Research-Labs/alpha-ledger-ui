@@ -7,9 +7,11 @@ import type { SectionMeta } from "@/core/sections";
 import { identClass } from "@/core/ui";
 import { LedgerMark } from "@/core/ui/LedgerMark";
 import { BackIcon, DashboardIcon, MenuIcon, SectionIcon, StatusIcon } from "@/core/ui/icons";
-import { USING_SAMPLE_DATA, useLedger } from "@/data/LedgerProvider";
+import { useTheme } from "@/core/theme";
+import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
 import { datasetsFor } from "@/data/queries";
-import { ServerDot } from "./ServerDot";
+import { ServerDot, ServerLight } from "./ServerDot";
+import { ThemeToggle } from "./ThemeToggle";
 import { UserChip } from "./UserChip";
 import s from "./shell.module.css";
 import w from "./workspace.module.css";
@@ -19,6 +21,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
   const pathname = usePathname();
   const { datasets } = useLedger();
   const [open, setOpen] = useState(false);
+  const { theme } = useTheme();
   const base = `/experiments/${experiment}`;
 
   useEffect(() => setOpen(false), [pathname]);
@@ -26,7 +29,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
   const current = sections.find((sec) => pathname.startsWith(`${base}/${sec.folder}`));
 
   return (
-    <div className={w.frame}>
+    <div className={w.frame} data-theme={theme}>
       <a href="#main" className={s.skip}>
         Skip to content
       </a>
@@ -92,13 +95,14 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
               <Link href="/status" className={w.item}>
                 <StatusIcon />
                 <span className={w.itemText}>Server status</span>
+                <ServerLight />
               </Link>
             </li>
           </ul>
-          {USING_SAMPLE_DATA && (
+          {!CONNECTED_TO_SERVER && (
             <div className={w.promo}>
-              <strong>Showing sample data</strong>
-              <p>Experiments and versions here are examples until the server saves real ones. Changes reset when you reload.</p>
+              <strong>Not saved yet</strong>
+              <p>The app isn&apos;t connected to the server yet, so anything created here disappears when you reload.</p>
             </div>
           )}
         </div>
@@ -130,6 +134,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
             )}
           </nav>
           <div className={w.topRight}>
+            <ThemeToggle />
             <ServerDot />
             <UserChip />
           </div>

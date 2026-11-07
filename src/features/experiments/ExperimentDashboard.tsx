@@ -52,6 +52,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
     ],
   ];
 
+  const busiest = Math.max(1, ...datasetsFor(datasets, experiment).map((d) => d.versions.length));
   const recent = [...versions].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 6);
 
   return (
@@ -87,6 +88,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
         <KpiCard
           label="Final model Sharpe"
           icon={<TrendIcon />}
+          emphasis
           value={sharpe !== undefined ? sharpe.toFixed(2) : "–"}
           note={finalRun ? finalRun.name : "No final model yet"}
           tone={sharpe !== undefined ? (sharpe >= 0 ? "up" : "down") : undefined}
@@ -122,7 +124,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
                               return (
                                 <span key={d.name} className={x.entry}>
                                   <span className={`${x.entryName} ${identClass}`}>{d.name}</span>
-                                  <VersionTicks versions={d.versions.map((v) => ({ version: v.ref.version, status: v.status }))} />
+                                  <VersionTicks versions={d.versions.map((v) => ({ version: v.ref.version, status: v.status }))} max={busiest} />
                                   <span className={x.entryMeta}>
                                     {latest ? `v${latest.ref.version}, ${formatDate(latest.createdAt)}` : "No complete version"}
                                     {lastV?.status === "failed" && <span className={x.failedNote}> v{lastV.ref.version} failed</span>}

@@ -1,13 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
 import type { SectionMeta } from "@/core/sections";
-import { Button, StatusMark, VersionTicks, identClass } from "@/core/ui";
+import { StatusMark, VersionTicks, identClass } from "@/core/ui";
 import { LedgerMark } from "@/core/ui/LedgerMark";
 import { CodeIcon, LineageIcon, LockIcon, SectionIcon, TrendIcon, VersionsIcon } from "@/core/ui/icons";
-import { AuthModal, type AuthMode } from "@/features/auth/AuthModal";
+import { AccountMenu, AutoOpenAuth, LogInButton, OpenAppButton, SignUpButtonLedger, SignedIn, SignedOut } from "@/features/auth/AuthActions";
 import l from "./landing.module.css";
 
 const KEEPS = [
@@ -59,21 +57,6 @@ const STEPS = [
 ];
 
 export function LandingPage({ sections }: { sections: SectionMeta[] }) {
-  const params = useSearchParams();
-  const router = useRouter();
-  const asked = params.get("auth");
-  const [mode, setMode] = useState<AuthMode>(asked === "signup" ? "signup" : "login");
-  const [open, setOpen] = useState(asked === "login" || asked === "signup");
-
-  const openAuth = (m: AuthMode) => {
-    setMode(m);
-    setOpen(true);
-  };
-  const close = () => {
-    setOpen(false);
-    if (asked) router.replace("/", { scroll: false });
-  };
-
   return (
     <div className={l.page}>
       <a href="#main" className={l.skip}>
@@ -91,12 +74,14 @@ export function LandingPage({ sections }: { sections: SectionMeta[] }) {
             <a href="#pipeline">Pipeline</a>
           </nav>
           <div className={l.auth}>
-            <Button variant="quiet" onClick={() => openAuth("login")}>
-              Log in
-            </Button>
-            <Button variant="primary" onClick={() => openAuth("signup")}>
-              Sign up
-            </Button>
+            <SignedOut>
+              <LogInButton />
+              <SignUpButtonLedger />
+            </SignedOut>
+            <SignedIn>
+              <OpenAppButton />
+              <AccountMenu />
+            </SignedIn>
           </div>
         </div>
       </header>
@@ -112,12 +97,13 @@ export function LandingPage({ sections }: { sections: SectionMeta[] }) {
                 models, as numbered versions linked together. Any result traces back to the exact data and code that made it.
               </p>
               <div className={l.ctas}>
-                <Button variant="primary" className={l.ctaMain} onClick={() => openAuth("signup")}>
-                  Get started
-                </Button>
-                <Button className={l.ctaAlt} onClick={() => openAuth("login")}>
-                  Log in
-                </Button>
+                <SignedOut>
+                  <SignUpButtonLedger className={l.ctaMain}>Get started</SignUpButtonLedger>
+                  <LogInButton variant="default" className={l.ctaAlt} />
+                </SignedOut>
+                <SignedIn>
+                  <OpenAppButton className={l.ctaLink}>Open your experiments</OpenAppButton>
+                </SignedIn>
               </div>
               <p className={l.small}>Your notebooks do the computing. Alpha Ledger keeps the record.</p>
             </div>
@@ -185,9 +171,12 @@ export function LandingPage({ sections }: { sections: SectionMeta[] }) {
               <h2 className={l.h2}>Start with your first experiment</h2>
               <p className={l.text}>Create an experiment, choose where its data comes from, and save your first snapshot from a notebook.</p>
             </div>
-            <Button variant="primary" className={l.ctaMain} onClick={() => openAuth("signup")}>
-              Get started
-            </Button>
+            <SignedOut>
+              <SignUpButtonLedger className={l.ctaMain}>Get started</SignUpButtonLedger>
+            </SignedOut>
+            <SignedIn>
+              <OpenAppButton className={l.ctaLink}>Open your experiments</OpenAppButton>
+            </SignedIn>
           </div>
         </section>
       </main>
@@ -200,7 +189,7 @@ export function LandingPage({ sections }: { sections: SectionMeta[] }) {
         <span>Versioned, traceable ML trading research.</span>
       </footer>
 
-      <AuthModal open={open} mode={mode} onMode={setMode} onClose={close} />
+      <AutoOpenAuth />
     </div>
   );
 }

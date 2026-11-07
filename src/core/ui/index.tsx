@@ -118,21 +118,23 @@ export function KpiCard({
   note,
   icon,
   tone,
+  emphasis = false,
 }: {
   label: string;
   value: ReactNode;
   note?: ReactNode;
   icon?: ReactNode;
   tone?: "up" | "down" | "warn";
+  emphasis?: boolean; // the one headline number to draw the eye to
 }) {
   return (
-    <div className={s.kpi}>
-      <div className={s.kpiHead}>
+    <div className={[s.kpi, emphasis ? s.kpiStrong : ""].join(" ")}>
+      {icon && <span className={s.kpiIcon}>{icon}</span>}
+      <div className={s.kpiBody}>
         <span className={s.kpiLabel}>{label}</span>
-        {icon && <span className={s.kpiIcon}>{icon}</span>}
+        <div className={[s.kpiValue, tone ? s[tone] : ""].join(" ")}>{value}</div>
+        {note && <div className={s.kpiNote}>{note}</div>}
       </div>
-      <div className={[s.kpiValue, tone ? s[tone] : ""].join(" ")}>{value}</div>
-      {note && <div className={s.kpiNote}>{note}</div>}
     </div>
   );
 }
@@ -227,12 +229,12 @@ export function BarChart({
     <svg viewBox={`0 0 ${W} ${H}`} className={s.chart} role="img" aria-label={label}>
       <defs>
         <linearGradient id={`b${gid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#7aa2ff" />
-          <stop offset="100%" stopColor="#2a4fc9" stopOpacity="0.85" />
+          <stop offset="0%" style={{ stopColor: "var(--chart-a)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--chart-b)", stopOpacity: 0.85 }} />
         </linearGradient>
         <linearGradient id={`h${gid}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#a9c3ff" />
-          <stop offset="100%" stopColor="#3b6cf6" />
+          <stop offset="0%" style={{ stopColor: "var(--chart-hi-a)" }} />
+          <stop offset="100%" style={{ stopColor: "var(--chart-hi-b)" }} />
         </linearGradient>
       </defs>
       <line x1="0" x2={W} y1={y(0)} y2={y(0)} className={s.chartAxis} />
@@ -251,9 +253,9 @@ export function BarChart({
               height={h}
               rx="3"
               fill={`url(#${d.highlight ? "h" : "b"}${gid})`}
-              style={d.highlight ? { filter: "drop-shadow(0 0 10px rgba(91,139,255,0.7))" } : undefined}
+              style={d.highlight ? { filter: "var(--chart-glow)" } : undefined}
             />
-            <text x={cx} y={d.value >= 0 ? yTop - 8 : yTop + h + 16} textAnchor="middle" className={s.chartValue} fill={d.value >= 0 ? "#2fd27a" : "#f0505a"}>
+            <text x={cx} y={d.value >= 0 ? yTop - 8 : yTop + h + 16} textAnchor="middle" className={s.chartValue} style={{ fill: d.value >= 0 ? "var(--chart-up)" : "var(--red)" }}>
               {format(d.value)}
             </text>
             <text x={cx} y={H - 14} textAnchor="middle" className={s.chartLabel}>
@@ -363,16 +365,27 @@ export function StatusMark({ status }: { status: VersionStatus }) {
 
 /* ---------- Version ticks ---------- */
 
-export function VersionTicks({ versions }: { versions: { version: number; status: VersionStatus }[] }) {
+/** One mark per saved version (navy theme), or a progress bar (graphite theme) whose length shows how many
+ *  versions this dataset has compared with the busiest one (max). Failed versions show as a red end. */
+export function VersionTicks({ versions, max }: { versions: { version: number; status: VersionStatus }[]; max?: number }) {
   const latestComplete = [...versions].reverse().find((v) => v.status === "complete")?.version;
+  const scale = Math.max(max ?? versions.length, versions.length, 1);
+  const complete = versions.filter((v) => v.status === "complete").length;
+  const failed = versions.filter((v) => v.status === "failed").length;
   return (
-    <span className={s.ticks} role="img" aria-label={`${versions.length} versions${latestComplete ? `, latest v${latestComplete}` : ""}`}>
-      {versions.map((v) => (
-        <span
-          key={v.version}
-          className={[s.tick, v.version === latestComplete ? s.tickLatest : "", v.status === "failed" ? s.tickFailed : ""].join(" ")}
-        />
-      ))}
+    <span className={s.versionMarks} role="img" aria-label={`${versions.length} versions${latestComplete ? `, latest v${latestComplete}` : ""}`}>
+      <span className={s.ticks}>
+        {versions.map((v) => (
+          <span
+            key={v.version}
+            className={[s.tick, v.version === latestComplete ? s.tickLatest : "", v.status === "failed" ? s.tickFailed : ""].join(" ")}
+          />
+        ))}
+      </span>
+      <span className={s.bar}>
+        <span className={s.barFill} style={{ width: `${(complete / scale) * 100}%` }} />
+        {failed > 0 && <span className={s.barFailed} style={{ width: `${(failed / scale) * 100}%` }} />}
+      </span>
     </span>
   );
 }

@@ -1,4 +1,4 @@
-// Read-only questions about the ledger. Pure functions: same answers for sample or real data.
+// Read-only questions about the ledger. Pure functions: same answers for in-memory or server data.
 
 import { sameRef } from "@/core/format";
 import type { Dataset, DatasetVersion, VersionRef } from "@/core/types";

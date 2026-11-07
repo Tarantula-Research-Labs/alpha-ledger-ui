@@ -24,7 +24,7 @@
   gap: 2px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: rgba(5, 9, 18, 0.7);
+  background: var(--input-well);
 }
 .metricBtn {
   padding: 4px 10px;
@@ -39,7 +39,7 @@
   color: var(--text);
 }
 .metricBtn[aria-checked="true"] {
-  background: linear-gradient(180deg, #4877ff, #2f5ce8);
+  background: var(--btn-primary-bg);
   color: #fff;
 }
 
@@ -66,7 +66,7 @@
   vertical-align: top;
 }
 .table tbody tr:hover {
-  background: rgba(59, 108, 246, 0.07);
+  background: var(--row-hover);
 }
 .num,
 .table th.num {
@@ -89,19 +89,19 @@
   font-weight: 600;
 }
 .final {
-  background: rgba(59, 108, 246, 0.12);
+  background: var(--row-selected);
   box-shadow: inset 2px 0 0 var(--accent-hi);
 }
 .finalTag {
   margin-left: 8px;
   padding: 1px 8px;
   border-radius: 999px;
-  background: linear-gradient(180deg, #4877ff, #2f5ce8);
+  background: var(--btn-primary-bg);
   color: #fff;
   font-size: 0.65rem;
   font-weight: 600;
   vertical-align: 1px;
-  box-shadow: 0 0 10px rgba(59, 108, 246, 0.5);
+  box-shadow: var(--accent-fill-glow);
 }
 .pushLink {
   font-family: var(--font-mono);

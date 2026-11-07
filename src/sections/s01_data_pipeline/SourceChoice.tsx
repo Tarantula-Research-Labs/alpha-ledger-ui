@@ -15,7 +15,6 @@ const FOLDER = "01_data_pipeline";
 export function SourceChoice({ open, onClose, experiment }: { open: boolean; onClose: () => void; experiment: string }) {
   const router = useRouter();
   const { experiments, datasets, reuseSnapshot } = useLedger();
-  const [mode, setMode] = useState<"past" | "fresh">("past");
 
   // Past experiments that have at least one complete snapshot.
   const sources = useMemo(
@@ -27,6 +26,8 @@ export function SourceChoice({ open, onClose, experiment }: { open: boolean; onC
     [experiments, datasets, experiment],
   );
 
+  // With no earlier snapshot to reuse, start on Fresh.
+  const [mode, setMode] = useState<"past" | "fresh">(sources.length ? "past" : "fresh");
   const [fromExp, setFromExp] = useState("");
   const [fromVersion, setFromVersion] = useState(0);
   const chosenExp = sources.find((s) => s.name === fromExp) ?? sources[0];

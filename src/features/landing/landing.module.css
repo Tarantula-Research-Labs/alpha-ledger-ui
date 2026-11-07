@@ -468,3 +468,8 @@
     padding: 24px;
   }
 }
+.ctaLink a {
+  min-height: 44px;
+  padding: 0 22px;
+  font-size: var(--fs-md);
+}

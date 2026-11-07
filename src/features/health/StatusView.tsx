@@ -7,7 +7,7 @@ import type { SectionMeta } from "@/core/sections";
 import { Button, PageHeader, Panel, identClass } from "@/core/ui";
 import h from "./health.module.css";
 
-// Live from the FastAPI server: nothing on this page is sample data.
+// Live from the FastAPI server: everything on this page is live.
 
 interface AwsHealth {
   status: "ok" | "error";

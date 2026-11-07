@@ -1,16 +1,16 @@
 "use client";
 
 // Where the UI gets its experiments and versions.
-// Today: sample data held in memory (changes reset on reload).
-// Later: each function here calls the FastAPI server instead; no screen needs to change.
+// Today: held in memory in this browser tab only (nothing is saved; a reload starts empty).
+// Next step: each function here calls the FastAPI server instead; no screen needs to change.
 
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react";
 import { NAME_PATTERN } from "@/core/format";
 import type { Dataset, Experiment, VersionRef } from "@/core/types";
 import { findDataset } from "./queries";
-import { sampleDatasets, sampleExperiments } from "./sample";
 
-export const USING_SAMPLE_DATA = true;
+/** False until the UI talks to the FastAPI server. Screens use it to say nothing is saved yet. */
+export const CONNECTED_TO_SERVER = false;
 
 const DATA_PIPELINE = "01_data_pipeline";
 
@@ -26,8 +26,8 @@ interface LedgerValue {
 const LedgerContext = createContext<LedgerValue | null>(null);
 
 export function LedgerProvider({ children }: { children: ReactNode }) {
-  const [experiments, setExperiments] = useState<Experiment[]>(sampleExperiments);
-  const [datasets, setDatasets] = useState<Dataset[]>(sampleDatasets);
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [datasets, setDatasets] = useState<Dataset[]>([]);
 
   const createExperiment = useCallback(
     (name: string, description: string) => {

@@ -63,7 +63,7 @@
   flex-wrap: wrap;
   min-height: 52px;
   padding: 10px 18px;
-  background: var(--panel-head-bg);
+  background: var(--panel-head-texture), var(--panel-head-bg);
   border-bottom: 1px solid var(--line);
 }
 .panelTitle {
@@ -582,33 +582,33 @@
 }
 
 /* ---------- Graphite theme layout differences ---------- */
-[data-theme="light"] .ticks {
+[data-theme] .ticks {
   display: none;
 }
-[data-theme="light"] .bar {
+[data-theme] .bar {
   display: block;
 }
-[data-theme="light"] .kpi {
+[data-theme] .kpi {
   display: grid;
   grid-template-columns: 28px minmax(0, 1fr);
   gap: 14px;
   padding: 18px 20px 16px;
 }
-[data-theme="light"] .kpiIcon {
+[data-theme] .kpiIcon {
   position: static;
   align-self: start;
   margin-top: 1px;
   color: var(--muted);
 }
-[data-theme="light"] .kpiLabel {
+[data-theme] .kpiLabel {
   padding-right: 0;
   margin-bottom: 8px;
   color: var(--label);
 }
-[data-theme="light"] .kpiValue {
+[data-theme] .kpiValue {
   font-weight: 700;
 }
-[data-theme="light"] .kpiStrong {
+[data-theme] .kpiStrong {
   background: var(--kpi-strong-bg);
   border-color: var(--kpi-strong-border);
 }
@@ -625,28 +625,35 @@
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
 }
-[data-theme="light"] .statLabel {
+[data-theme] .statLabel {
   color: var(--label);
   font-weight: 400;
 }
-[data-theme="light"] .statValue {
+[data-theme] .statValue {
   font-size: var(--fs-md);
   font-weight: 600;
 }
-[data-theme="light"] .pageTitle {
+[data-theme] .pageTitle {
   font-size: var(--fs-2xl);
   font-weight: 700;
 }
-[data-theme="light"] .panelTitle {
+[data-theme] .panelTitle {
   font-size: var(--fs-lg);
 }
-[data-theme="light"] .panelIcon {
+[data-theme] .panelIcon {
   border-color: var(--muted);
 }
-[data-theme="light"] .pageLink {
+[data-theme] .pageLink {
   text-transform: none;
   letter-spacing: 0;
   font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--muted);
+}
+
+/* Dark: key facts stay in pairs, one tile per pair */
+[data-theme="dark"] .stat {
+  background: var(--tile-bg);
+  border-color: var(--line);
+  box-shadow: none;
 }

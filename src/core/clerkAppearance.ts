@@ -59,3 +59,19 @@ export const clerkGraphiteAppearance = {
     userButtonPopoverCard: { border: "1px solid #34383e", boxShadow: "0 18px 50px rgba(0, 0, 0, 0.55)" },
   },
 };
+
+// The user menu inside the app when the dark theme is on.
+export const clerkDarkAppearance = {
+  variables: {
+    ...clerkGraphiteAppearance.variables,
+    colorPrimary: "#5d6c7d",
+    colorBackground: "#0d0f12",
+    colorMuted: "#16191d",
+    colorInput: "#08090b",
+    colorBorder: "rgba(255, 255, 255, 0.14)",
+    colorRing: "#8fb4dc",
+  },
+  elements: {
+    userButtonPopoverCard: { border: "1px solid rgba(255, 255, 255, 0.14)", boxShadow: "0 18px 50px rgba(0, 0, 0, 0.7)" },
+  },
+};

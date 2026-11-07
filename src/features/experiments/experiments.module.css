@@ -365,48 +365,48 @@
   margin-bottom: 18px;
 }
 
-/* ---------- Graphite theme ---------- */
-[data-theme="light"] .stageNum {
+/* ---------- App themes (graphite light and dark) ---------- */
+[data-theme] .stageNum {
   height: 34px;
   border: 0;
   background: var(--num-box-bg);
   color: var(--text);
   font-size: var(--fs-md);
 }
-[data-theme="light"] .stage[data-active="false"] .stageNum {
+[data-theme] .stage[data-active="false"] .stageNum {
   border: 0;
   background: var(--num-box-bg);
   color: var(--text);
 }
-[data-theme="light"] .stageTitle {
+[data-theme] .stageTitle {
   font-size: var(--fs-lg);
 }
-[data-theme="light"] .entry {
+[data-theme] .entry {
   grid-template-columns: minmax(140px, 260px) 124px minmax(0, 1fr);
   font-size: var(--fs-sm);
 }
-[data-theme="light"] .entryName {
+[data-theme] .entryName {
   font-family: var(--font-sans);
   color: var(--muted);
 }
-[data-theme="light"] .entryMeta {
+[data-theme] .entryMeta {
   color: var(--text);
 }
-[data-theme="light"] .chev {
+[data-theme] .chev {
   color: var(--muted);
 }
-[data-theme="light"] .card:hover {
+[data-theme] .card:hover {
   border-color: var(--line-strong);
 }
-[data-theme="light"] .cardOpen {
+[data-theme] .cardOpen {
   color: var(--text);
 }
-[data-theme="light"] .card:hover .cardOpen {
+[data-theme] .card:hover .cardOpen {
   background: var(--btn-primary-bg);
   border-color: var(--btn-primary-bg);
 }
 @media (max-width: 640px) {
-  [data-theme="light"] .entry {
+  [data-theme] .entry {
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }

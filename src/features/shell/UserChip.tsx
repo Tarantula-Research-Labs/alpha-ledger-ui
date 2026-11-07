@@ -1,7 +1,7 @@
 "use client";
 
 import { UserButton, useUser } from "@clerk/nextjs";
-import { clerkGraphiteAppearance } from "@/core/clerkAppearance";
+import { clerkDarkAppearance, clerkGraphiteAppearance } from "@/core/clerkAppearance";
 import { useTheme } from "@/core/theme";
 import s from "./shell.module.css";
 
@@ -13,7 +13,7 @@ export function UserChip() {
   return (
     <span className={s.userWrap}>
       {name && <span className={`${s.user} ${s.userName}`}>{name}</span>}
-      <UserButton appearance={theme === "light" ? clerkGraphiteAppearance : undefined} />
+      <UserButton appearance={theme === "light" ? clerkGraphiteAppearance : clerkDarkAppearance} />
     </span>
   );
 }

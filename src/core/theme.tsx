@@ -1,7 +1,7 @@
 "use client";
 
 // Light / dark theme for the app pages (the landing page has its own fixed look).
-// "light" is the graphite design; "dark" is the navy design until its own dark version arrives.
+// "light" is the graphite design; "dark" is the black design with contour lines and steel-blue accents.
 // The choice is remembered in this browser only.
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 

@@ -230,23 +230,23 @@
   color: var(--muted);
 }
 
-/* ---------- Graphite theme ---------- */
-[data-theme="light"] .server:not(.serverLight) {
+/* ---------- App themes (graphite light and dark) ---------- */
+[data-theme] .server:not(.serverLight) {
   padding: 6px 12px;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--panel-head);
 }
-[data-theme="light"] .server[data-state="up"] {
+[data-theme] .server[data-state="up"] {
   color: var(--green);
 }
-[data-theme="light"] .wordmarkText {
+[data-theme] .wordmarkText {
   font-weight: 700;
 }
-[data-theme="light"] .navLink {
+[data-theme] .navLink {
   color: var(--muted);
 }
-[data-theme="light"] .navLink[aria-current="page"] {
+[data-theme] .navLink[aria-current="page"] {
   color: var(--text);
   border-color: transparent;
 }

@@ -18,7 +18,7 @@
   flex-direction: column;
   gap: 18px;
   padding: 18px 14px 16px;
-  background: var(--texture), var(--sidebar-bg);
+  background: var(--sidebar-texture), var(--sidebar-bg);
   border-right: 1px solid var(--line);
   overflow-x: hidden;
   overflow-y: auto;
@@ -264,55 +264,55 @@
   }
 }
 
-/* ---------- Graphite theme ---------- */
-[data-theme="light"] .item {
+/* ---------- App themes (graphite light and dark) ---------- */
+[data-theme] .item {
   font-size: var(--fs-md);
   color: var(--text);
 }
-[data-theme="light"] .item[aria-current="page"] {
+[data-theme] .item[aria-current="page"] {
   border-color: transparent;
   font-weight: 600;
 }
-[data-theme="light"] .item[aria-current="page"] svg {
+[data-theme] .item[aria-current="page"] svg {
   color: var(--text);
 }
-[data-theme="light"] .item[data-skipped="true"] {
+[data-theme] .item[data-skipped="true"] {
   color: var(--text);
 }
-[data-theme="light"] .itemNum,
-[data-theme="light"] .item[data-skipped="true"] .itemNum {
+[data-theme] .itemNum,
+[data-theme] .item[data-skipped="true"] .itemNum {
   color: inherit;
   font-weight: 400;
 }
-[data-theme="light"] .badgeMuted {
+[data-theme] .badgeMuted {
   border: 0;
   background: var(--badge-bg);
   color: var(--badge-text);
   padding: 2px 9px;
 }
-[data-theme="light"] .badge {
+[data-theme] .badge {
   padding: 2px 9px;
 }
-[data-theme="light"] .group {
+[data-theme] .group {
   color: var(--text);
   font-size: var(--fs-sm);
 }
-[data-theme="light"] .bottom {
+[data-theme] .bottom {
   padding-top: 14px;
   border-top: 1px solid var(--line);
 }
-[data-theme="light"] .expName {
+[data-theme] .expName {
   font-family: var(--font-sans);
   font-weight: 600;
 }
-[data-theme="light"] .back {
+[data-theme] .back {
   color: var(--text);
 }
-[data-theme="light"] .crumbs {
+[data-theme] .crumbs {
   font-size: var(--fs-md);
   color: var(--text);
 }
-[data-theme="light"] .crumbs [aria-current="page"],
-[data-theme="light"] .crumbs .ident {
+[data-theme] .crumbs [aria-current="page"],
+[data-theme] .crumbs .ident {
   font-family: var(--font-sans);
 }

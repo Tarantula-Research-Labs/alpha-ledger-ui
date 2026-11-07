@@ -613,13 +613,13 @@
   border-color: var(--kpi-strong-border);
 }
 /* Key facts: every fact in its own tile */
-[data-theme="light"] .stat {
+[data-theme] .stat {
   padding: 0;
   gap: 14px;
   background: none;
   border: 0;
 }
-[data-theme="light"] .stat > div {
+[data-theme] .stat > div {
   padding: 12px 16px;
   background: var(--tile-bg);
   border: 1px solid var(--line);
@@ -649,11 +649,4 @@
   font-size: var(--fs-sm);
   font-weight: 500;
   color: var(--muted);
-}
-
-/* Dark: key facts stay in pairs, one tile per pair */
-[data-theme="dark"] .stat {
-  background: var(--tile-bg);
-  border-color: var(--line);
-  box-shadow: none;
 }

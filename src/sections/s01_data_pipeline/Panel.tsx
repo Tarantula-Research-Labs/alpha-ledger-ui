@@ -7,23 +7,22 @@ import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } fro
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { dbConnectSnippet, loadMarketDataSnippet, saveTableSnippet } from "@/features/snippets/snippets";
+import { dbConnectSnippet, loadMarketDataSnippet } from "@/features/snippets/snippets";
 import { DatasetList } from "@/features/versions/DatasetList";
 import { SaveDialog } from "@/features/versions/SaveDialog";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 
 const FOLDER = "01_data_pipeline";
 
-// The notebook steps that make a snapshot: connect to the database, load the data, save it here.
-function PullSteps({ experiment }: { experiment: string }) {
+// The notebook steps that get the data: connect to the database, then load it.
+// (How the data is saved is decided later, during research.)
+function PullSteps() {
   return (
     <div className={p.stack}>
       <p className={p.muted}>1. Connect to the database. Keep the credentials in a .env file next to your notebook.</p>
       <CodeBlock code={dbConnectSnippet()} />
       <p className={p.muted}>2. Load the data for this experiment.</p>
       <CodeBlock code={loadMarketDataSnippet()} />
-      <p className={p.muted}>3. Save it as this experiment&apos;s snapshot. Every later section reads this frozen copy.</p>
-      <CodeBlock code={saveTableSnippet(experiment, FOLDER, "snapshot")} />
     </div>
   );
 }
@@ -67,7 +66,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
             {!latest && (
               <div style={{ marginBottom: 20 }}>
                 <Panel title="Pull this experiment's data" icon>
-                  <PullSteps experiment={experiment} />
+                  <PullSteps />
                 </Panel>
               </div>
             )}
@@ -95,7 +94,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       />
 
       <Dialog open={pulling} onClose={() => setPulling(false)} title="Pull a new snapshot" wide>
-        <PullSteps experiment={experiment} />
+        <PullSteps />
       </Dialog>
       <SaveDialog open={saving} onClose={() => setSaving(false)} experiment={experiment} section={FOLDER} />
       <VersionDrawer experiment={experiment} section={FOLDER} />

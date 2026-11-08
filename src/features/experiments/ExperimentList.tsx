@@ -5,6 +5,7 @@ import { useState } from "react";
 import { formatDate } from "@/core/format";
 import type { SectionMeta } from "@/core/sections";
 import { EmptyState, PageHeader, identClass } from "@/core/ui";
+import { GearSpinner } from "@/core/ui/GearSpinner";
 import { useLedger } from "@/data/LedgerProvider";
 import { allVersions, datasetsFor, lastSaved } from "@/data/queries";
 import { CreateExperimentDialog } from "./CreateExperimentDialog";
@@ -25,7 +26,7 @@ export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
           title="Your experiments"
           sub="Pick an experiment to open its dashboard. Each one keeps its own frozen data, features, labels and models, and nothing saved is ever overwritten."
         />
-        <EmptyState title="Loading experiments…" />
+        <GearSpinner label="Loading experiments…" />
       </>
     );
   }

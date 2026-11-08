@@ -1,0 +1,8 @@
+.wrap { display: grid; justify-items: center; gap: 14px; padding: 56px 0; }
+.svg { width: 96px; height: 88px; overflow: visible; }
+.big, .small { transform-box: fill-box; transform-origin: center; }
+.big { color: var(--accent); animation: spin 4s linear infinite; filter: drop-shadow(0 0 6px var(--accent-soft)); }
+.small { color: var(--muted); animation: spin 2.8s linear infinite reverse; }
+.label { color: var(--muted); font-size: var(--fs-sm); letter-spacing: 0.02em; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .big, .small { animation-duration: 14s; } }

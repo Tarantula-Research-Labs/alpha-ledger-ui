@@ -8,8 +8,6 @@ import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
 import { dbConnectSnippet, loadMarketDataSnippet } from "@/features/snippets/snippets";
-import { DatasetList } from "@/features/versions/DatasetList";
-import { SaveDialog } from "@/features/versions/SaveDialog";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 
 const FOLDER = "01_data_pipeline";
@@ -35,7 +33,6 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
   const snapshot = here.find((d) => d.name === "snapshot");
   const latest = snapshot ? latestComplete(snapshot) : undefined;
 
-  const [saving, setSaving] = useState(false);
   const [pulling, setPulling] = useState(false);
 
   const s = latest?.settings ?? {};
@@ -70,9 +67,6 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
                 </Panel>
               </div>
             )}
-            <Panel title="Datasets" icon flush actions={<Button onClick={() => setSaving(true)}>Save a new dataset</Button>}>
-              <DatasetList experiment={experiment} section={FOLDER} emptyText="Nothing saved yet. Run the snippets above in your notebook to save the first snapshot." />
-            </Panel>
             {latest && (
               <p className={p.note}>
                 Snapshot v{latest.ref.version} is <strong>a fresh pull from trl_datalake</strong>. Every later section reads this frozen copy.
@@ -96,7 +90,6 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       <Dialog open={pulling} onClose={() => setPulling(false)} title="Pull a new snapshot" wide>
         <PullSteps />
       </Dialog>
-      <SaveDialog open={saving} onClose={() => setSaving(false)} experiment={experiment} section={FOLDER} />
       <VersionDrawer experiment={experiment} section={FOLDER} />
     </>
   );

@@ -1,3 +1,4 @@
+import { MarksProvider } from "@/data/marks";
 import { requireSignedIn } from "@/features/auth/requireSignedIn";
 import { ExperimentGuard } from "@/features/experiments/ExperimentGuard";
 import { WorkspaceShell } from "@/features/shell/WorkspaceShell";
@@ -14,8 +15,10 @@ export default async function WorkspaceLayout({
   await requireSignedIn();
   const { experiment } = await params;
   return (
-    <WorkspaceShell experiment={experiment} sections={SECTION_META}>
-      <ExperimentGuard experiment={experiment}>{children}</ExperimentGuard>
-    </WorkspaceShell>
+    <MarksProvider experiment={experiment}>
+      <WorkspaceShell experiment={experiment} sections={SECTION_META}>
+        <ExperimentGuard experiment={experiment}>{children}</ExperimentGuard>
+      </WorkspaceShell>
+    </MarksProvider>
   );
 }

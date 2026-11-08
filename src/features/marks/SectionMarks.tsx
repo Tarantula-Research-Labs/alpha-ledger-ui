@@ -8,7 +8,7 @@ import m from "./marks.module.css";
 
 // The drafts of one section. "Mark complete" saves the next draft (Draft 1, Draft 2, ...) with an optional note.
 export function SectionMarks({ experiment, section }: { experiment: string; section: string }) {
-  const { marks, error, addMark, hideMark } = useMarks(experiment);
+  const { marks, error, addMark, hideMark } = useMarks();
   const mine = marks.filter((x) => x.section === section).sort((a, b) => a.draft - b.draft);
   const next = (latestMark(marks, section)?.draft ?? 0) + 1;
 

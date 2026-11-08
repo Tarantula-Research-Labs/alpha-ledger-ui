@@ -410,3 +410,30 @@
     grid-template-columns: minmax(0, 1fr) auto;
   }
 }
+
+/* Section states on the dashboard: in progress = green, completed = dark grey, upcoming = as is. */
+.stage[data-state="current"],
+[data-theme] .stage[data-state="current"] {
+  background: color-mix(in srgb, var(--green) 7%, transparent);
+  box-shadow: inset 3px 0 0 var(--green);
+}
+.stage[data-state="current"] .stageNum,
+[data-theme] .stage[data-state="current"] .stageNum {
+  background: var(--green);
+  border-color: var(--green);
+  color: #06140c;
+}
+.stage[data-state="current"] .stageNote,
+[data-theme] .stage[data-state="current"] .stageNote {
+  color: var(--green);
+}
+.stage[data-state="completed"] .stageNum,
+[data-theme] .stage[data-state="completed"] .stageNum {
+  background: color-mix(in srgb, var(--muted) 22%, transparent);
+  border-color: transparent;
+  color: var(--muted);
+}
+.stage[data-state="completed"] .stageTitle,
+[data-theme] .stage[data-state="completed"] .stageTitle {
+  color: var(--muted);
+}

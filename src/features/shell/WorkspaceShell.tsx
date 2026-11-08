@@ -9,6 +9,7 @@ import { LedgerMark } from "@/core/ui/LedgerMark";
 import { BackIcon, DashboardIcon, MenuIcon, SectionIcon, StatusIcon } from "@/core/ui/icons";
 import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
+import { sectionStates, useMarks } from "@/data/marks";
 import { datasetsFor } from "@/data/queries";
 import { ServerDot, ServerLight } from "./ServerDot";
 import { ThemeToggle } from "./ThemeToggle";
@@ -20,6 +21,8 @@ import w from "./workspace.module.css";
 export function WorkspaceShell({ experiment, sections, children }: { experiment: string; sections: SectionMeta[]; children: ReactNode }) {
   const pathname = usePathname();
   const { datasets } = useLedger();
+  const { marks } = useMarks();
+  const states = sectionStates(sections, marks);
   const [open, setOpen] = useState(false);
   const { theme } = useTheme();
   const base = `/experiments/${experiment}`;
@@ -70,7 +73,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
               const count = datasetsFor(datasets, experiment, sec.folder).reduce((n, d) => n + d.versions.length, 0);
               return (
                 <li key={sec.folder}>
-                  <Link href={href} className={w.item} data-skipped={!sec.active} aria-current={current?.folder === sec.folder ? "page" : undefined}>
+                  <Link href={href} className={w.item} data-skipped={!sec.active} data-state={states[sec.folder]} aria-current={current?.folder === sec.folder ? "page" : undefined}>
                     <SectionIcon name={sec.icon} />
                     <span className={w.itemText}>
                       <span className={w.itemNum}>{sec.number}</span> {sec.title}

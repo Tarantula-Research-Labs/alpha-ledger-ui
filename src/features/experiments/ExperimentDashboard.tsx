@@ -6,7 +6,7 @@ import type { SectionMeta } from "@/core/sections";
 import { ButtonLink, KpiCard, KpiRow, PageHeader, Panel, StatTiles, StatusMark, TwoColumn, VersionTicks, identClass, type Stat } from "@/core/ui";
 import { ClockIcon, SectionIcon, TrendIcon, VersionsIcon } from "@/core/ui/icons";
 import { useLedger } from "@/data/LedgerProvider";
-import { latestMark, useMarks } from "@/data/marks";
+import { latestMark, sectionStates, useMarks } from "@/data/marks";
 import { allVersions, datasetsFor, findDataset, lastSaved, latestComplete } from "@/data/queries";
 import x from "./experiments.module.css";
 
@@ -14,7 +14,8 @@ import x from "./experiments.module.css";
 // Research charts and reports will be added here once the first baseline is stored.
 export function ExperimentDashboard({ experiment, sections }: { experiment: string; sections: SectionMeta[] }) {
   const { experiments, datasets } = useLedger();
-  const { marks } = useMarks(experiment);
+  const { marks } = useMarks();
+  const states = sectionStates(sections, marks);
   const exp = experiments.find((e) => e.name === experiment);
   if (!exp) return null;
 
@@ -106,7 +107,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
                 const mark = latestMark(marks, sec.folder);
                 return (
                   <li key={sec.folder}>
-                    <Link href={`/experiments/${experiment}/${sec.folder}`} className={x.stage} data-active={sec.active}>
+                    <Link href={`/experiments/${experiment}/${sec.folder}`} className={x.stage} data-active={sec.active} data-state={states[sec.folder]}>
                       <span className={x.stageNum} aria-hidden="true">
                         {sec.number}
                       </span>
@@ -120,7 +121,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
                         ) : (
                           <>
                           <span className={x.stageNote}>
-                            {mark ? `Draft ${mark.draft} complete · ${formatDate(mark.createdAt)}` : "In progress"}
+                            {mark ? `Draft ${mark.draft} complete · ${formatDate(mark.createdAt)}` : states[sec.folder] === "current" ? "In progress" : "Upcoming"}
                           </span>
                           {ds.length > 0 && (
                           <span className={x.entries}>

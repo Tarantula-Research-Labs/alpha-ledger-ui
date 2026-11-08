@@ -1,0 +1,9 @@
+.wrap { margin-bottom: 20px; }
+.line { display: flex; align-items: center; gap: 10px; margin: 0; }
+.dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+.dot[data-state="running"] { background: var(--green); }
+.dot[data-state="stopped"] { background: var(--red); }
+.dot[data-state="pending"], .dot[data-state="stopping"] { background: var(--amber); animation: pulse 1.2s ease-in-out infinite; }
+.state { color: var(--muted); font-size: var(--fs-sm); }
+.hint { color: var(--muted); font-size: var(--fs-xs); margin: 8px 0 0; }
+@keyframes pulse { 50% { opacity: 0.35; } }

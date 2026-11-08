@@ -6,6 +6,7 @@ import { NOTEBOOK_API_URL } from "@/core/config";
 import type { SectionMeta } from "@/core/sections";
 import { Button, PageHeader, Panel, identClass } from "@/core/ui";
 import h from "./health.module.css";
+import { MachinePanel } from "./MachinePanel";
 
 // Live from the FastAPI server: everything on this page is live.
 
@@ -73,11 +74,12 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
         }
       />
 
+      <MachinePanel onRunning={() => void check()} />
+
       {down && (
         <div className={h.down} role="alert">
           <strong>The server isn&apos;t responding at {NOTEBOOK_API_URL}.</strong>
-          <p>Start it from the server folder, then check again:</p>
-          <pre className={identClass}>.\venv\Scripts\python -m uvicorn app.main:app --reload</pre>
+          <p>If the machine is stopped, start it above.</p>
         </div>
       )}
 

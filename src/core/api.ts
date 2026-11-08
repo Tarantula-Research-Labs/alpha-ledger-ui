@@ -29,3 +29,25 @@ export async function apiGet<T>(path: string): Promise<T> {
   }
   return data as T;
 }
+
+/** Like apiGet, but an error reply becomes an ApiError carrying the server's own message (e.g. "already exists"). */
+export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`/api${path}`, { cache: "no-store", ...init });
+  } catch {
+    throw new ApiError(0, "The server can't be reached.");
+  }
+  const body = await response.text();
+  let data: unknown = null;
+  try {
+    data = body ? JSON.parse(body) : null;
+  } catch {
+    // Not JSON.
+  }
+  if (!response.ok) {
+    const message = (data as { error?: { message?: string } } | null)?.error?.message;
+    throw new ApiError(response.status, message ?? `The server replied with an error (${response.status}).`);
+  }
+  return data as T;
+}

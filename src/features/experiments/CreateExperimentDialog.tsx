@@ -12,6 +12,7 @@ export function CreateExperimentDialog({ open, onClose }: { open: boolean; onClo
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   function close() {
     setName("");
@@ -20,9 +21,11 @@ export function CreateExperimentDialog({ open, onClose }: { open: boolean; onClo
     onClose();
   }
 
-  function submit(e: FormEvent) {
+  async function submit(e: FormEvent) {
     e.preventDefault();
-    const problem = createExperiment(name.trim(), description);
+    setBusy(true);
+    const problem = await createExperiment(name.trim(), description);
+    setBusy(false);
     if (problem) {
       setError(problem);
       return;
@@ -67,8 +70,8 @@ export function CreateExperimentDialog({ open, onClose }: { open: boolean; onClo
           <Button variant="quiet" onClick={close}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary">
-            Create experiment
+          <Button type="submit" variant="primary" disabled={busy}>
+            {busy ? "Creating…" : "Create experiment"}
           </Button>
         </div>
       </form>

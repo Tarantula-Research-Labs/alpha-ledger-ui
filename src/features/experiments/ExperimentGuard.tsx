@@ -6,7 +6,17 @@ import { useLedger } from "@/data/LedgerProvider";
 
 // Shows its children only when the experiment exists.
 export function ExperimentGuard({ experiment, children }: { experiment: string; children: ReactNode }) {
-  const { experiments } = useLedger();
+  const { experiments, loading, loadError } = useLedger();
+  if (loading) {
+    return <EmptyState title="Loading…" />;
+  }
+  if (loadError) {
+    return (
+      <EmptyState title="Couldn't load experiments." action={<ButtonLink href="/experiments">See all experiments</ButtonLink>}>
+        <p>{loadError}</p>
+      </EmptyState>
+    );
+  }
   if (!experiments.some((e) => e.name === experiment)) {
     return (
       <EmptyState title={`There's no experiment called ${experiment}.`} action={<ButtonLink href="/experiments">See all experiments</ButtonLink>}>

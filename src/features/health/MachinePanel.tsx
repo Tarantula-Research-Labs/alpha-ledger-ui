@@ -1,72 +1,51 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { ApiError, apiRequest } from "@/core/api";
+import { useEffect, useState } from "react";
 import { Button, Panel } from "@/core/ui";
+import { useLedger, type ServerPhase } from "@/data/LedgerProvider";
 import m from "./machine.module.css";
 
-const LABELS: Record<string, string> = {
-  running: "Running",
-  stopped: "Stopped",
-  pending: "Starting…",
+const LABELS: Record<ServerPhase, string> = {
+  checking: "Checking…",
+  off: "Stopped",
+  starting: "Starting…",
   stopping: "Stopping…",
+  ready: "Running",
+  error: "Couldn't check",
 };
 
-// The EC2 machine behind the server: its state, and a Start or Stop button.
-// onRunning is called when the machine has just come up, so the page can re-check the server.
-export function MachinePanel({ onRunning }: { onRunning: () => void }) {
-  const [state, setState] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+// Colour of the dot for each phase (see machine.module.css).
+const DOT: Record<ServerPhase, string> = {
+  checking: "unknown",
+  off: "stopped",
+  starting: "pending",
+  stopping: "stopping",
+  ready: "running",
+  error: "unknown",
+};
+
+// The EC2 machine behind the server: its state, and a Start or Stop button. Shares its state with every page.
+export function MachinePanel() {
+  const { server, serverError, startServer, stopServer, recheckServer } = useLedger();
   const [busy, setBusy] = useState(false);
 
-  const look = useCallback(async () => {
-    try {
-      const r = await apiRequest<{ state: string }>("/power");
-      setState((before) => {
-        if (before === "pending" && r.state === "running") onRunning();
-        return r.state;
-      });
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Couldn't check the machine.");
-    }
-  }, [onRunning]);
-
   useEffect(() => {
-    void look();
-  }, [look]);
-
-  // While starting or stopping, look again every 5 seconds.
-  useEffect(() => {
-    if (state !== "pending" && state !== "stopping") return;
-    const t = setInterval(() => void look(), 5000);
-    return () => clearInterval(t);
-  }, [state, look]);
+    void recheckServer();
+  }, [recheckServer]);
 
   async function act(action: "start" | "stop") {
     if (action === "stop" && !window.confirm("Stop the server? Notebooks and the app can't reach it until you start it again.")) return;
     setBusy(true);
-    try {
-      const r = await apiRequest<{ state: string }>("/power", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action }),
-      });
-      setState(r.state);
-      setError(null);
-    } catch (e) {
-      setError(e instanceof ApiError ? e.message : `Couldn't ${action} the machine.`);
-    } finally {
-      setBusy(false);
-    }
+    await (action === "start" ? startServer() : stopServer());
+    setBusy(false);
   }
 
   const button =
-    state === "running" ? (
+    server === "ready" ? (
       <Button onClick={() => act("stop")} disabled={busy}>
         Stop
       </Button>
-    ) : state === "stopped" ? (
+    ) : server === "off" ? (
       <Button variant="primary" onClick={() => act("start")} disabled={busy}>
         Start
       </Button>
@@ -76,11 +55,11 @@ export function MachinePanel({ onRunning }: { onRunning: () => void }) {
     <div className={m.wrap}>
       <Panel title="Machine" icon actions={button}>
         <p className={m.line}>
-          <span className={m.dot} data-state={state ?? "unknown"} aria-hidden="true" />
+          <span className={m.dot} data-state={DOT[server]} aria-hidden="true" />
           <strong>ml-research-server</strong>
-          <span className={m.state}>{error ?? (state ? LABELS[state] ?? state : "Checking…")}</span>
+          <span className={m.state}>{serverError ?? LABELS[server]}</span>
         </p>
-        {state === "pending" && <p className={m.hint}>Takes about 1–2 minutes. The server starts on its own once the machine is up.</p>}
+        {server === "starting" && <p className={m.hint}>Takes about 1–2 minutes. The server starts on its own once the machine is up.</p>}
       </Panel>
     </div>
   );

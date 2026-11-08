@@ -10,36 +10,39 @@ import { useLedger } from "@/data/LedgerProvider";
 import { allVersions, datasetsFor, lastSaved } from "@/data/queries";
 import { CreateExperimentDialog } from "./CreateExperimentDialog";
 import { SectionCoverage } from "./SectionCoverage";
+import { ServerGate } from "./ServerGate";
 import x from "./experiments.module.css";
 
 // All experiments as cards. Opening one goes to that experiment's dashboard.
+// The cards show only once the server is up (see ServerGate).
 export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
-  const { experiments, datasets, loading } = useLedger();
-  const [creating, setCreating] = useState(false);
-
-  // Until the list has arrived from the server: only the page title and "Loading experiments…".
-  // No cards, no "No experiments yet" and no New experiment card.
-  if (loading) {
-    return (
-      <>
-        <PageHeader
-          title="Your experiments"
-          sub="Pick an experiment to open its dashboard. Each one keeps its own frozen data, features, labels and models, and nothing saved is ever overwritten."
-        />
-        <GearSpinner label="Loading experiments…" />
-      </>
-    );
-  }
-
-  const rows = [...experiments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
   return (
     <>
       <PageHeader
         title="Your experiments"
         sub="Pick an experiment to open its dashboard. Each one keeps its own frozen data, features, labels and models, and nothing saved is ever overwritten."
       />
+      <ServerGate>
+        <ExperimentCards sections={sections} />
+      </ServerGate>
+    </>
+  );
+}
 
+function ExperimentCards({ sections }: { sections: SectionMeta[] }) {
+  const { experiments, datasets, loading } = useLedger();
+  const [creating, setCreating] = useState(false);
+
+  // Until the list has arrived from the server: only "Loading experiments…".
+  // No cards, no "No experiments yet" and no New experiment card.
+  if (loading) {
+    return <GearSpinner label="Loading experiments…" />;
+  }
+
+  const rows = [...experiments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  return (
+    <>
       {rows.length === 0 && (
         <div className={x.firstRun}>
           <EmptyState title="No experiments yet.">

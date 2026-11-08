@@ -3,9 +3,18 @@
 import type { ReactNode } from "react";
 import { ButtonLink, EmptyState } from "@/core/ui";
 import { useLedger } from "@/data/LedgerProvider";
+import { ServerGate } from "./ServerGate";
 
-// Shows its children only when the experiment exists.
+// Shows its children only when the server is up and the experiment exists.
 export function ExperimentGuard({ experiment, children }: { experiment: string; children: ReactNode }) {
+  return (
+    <ServerGate>
+      <ExperimentCheck experiment={experiment}>{children}</ExperimentCheck>
+    </ServerGate>
+  );
+}
+
+function ExperimentCheck({ experiment, children }: { experiment: string; children: ReactNode }) {
   const { experiments, loading, loadError } = useLedger();
   if (loading) {
     return <EmptyState title="Loading…" />;

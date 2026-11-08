@@ -6,6 +6,7 @@ import { NOTEBOOK_API_URL } from "@/core/config";
 import type { SectionMeta } from "@/core/sections";
 import { Button, PageHeader, Panel, identClass } from "@/core/ui";
 import h from "./health.module.css";
+import { useLedger } from "@/data/LedgerProvider";
 import { MachinePanel } from "./MachinePanel";
 
 // Live from the FastAPI server: everything on this page is live.
@@ -62,6 +63,12 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
     void check();
   }, [check]);
 
+  // When the machine has just come up and the server answers, run the checks again.
+  const { server } = useLedger();
+  useEffect(() => {
+    if (server === "ready") void check();
+  }, [server, check]);
+
   return (
     <>
       <PageHeader
@@ -74,7 +81,7 @@ export function StatusView({ uiSections }: { uiSections: SectionMeta[] }) {
         }
       />
 
-      <MachinePanel onRunning={() => void check()} />
+      <MachinePanel />
 
       {down && (
         <div className={h.down} role="alert">

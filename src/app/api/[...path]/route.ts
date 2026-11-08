@@ -22,7 +22,7 @@ async function forward(req: NextRequest, { params }: { params: Promise<{ path: s
     const res = await fetch(`${API_URL}/${path.join("/")}${req.nextUrl.search}`, {
       method: req.method,
       headers: { "content-type": "application/json", "X-Ledger-Key": API_KEY },
-      body: req.method === "GET" ? undefined : await req.text(),
+      body: req.method === "POST" ? await req.text() : undefined,
       cache: "no-store",
     });
     return new NextResponse(await res.text(), { status: res.status, headers: { "content-type": "application/json" } });
@@ -31,4 +31,4 @@ async function forward(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 }
 
-export { forward as GET, forward as POST };
+export { forward as GET, forward as POST, forward as DELETE };

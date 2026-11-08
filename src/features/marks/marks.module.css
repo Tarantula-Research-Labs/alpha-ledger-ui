@@ -1,0 +1,7 @@
+.wrap { margin-bottom: 20px; }
+.empty { color: var(--muted); font-size: var(--fs-sm); margin: 0; }
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.item { display: grid; grid-template-columns: auto auto 1fr auto; gap: 12px; align-items: center; }
+.date { color: var(--label); font-size: var(--fs-xs); }
+.note { color: var(--muted); font-size: var(--fs-sm); }
+.actions { display: flex; justify-content: flex-end; gap: 8px; }

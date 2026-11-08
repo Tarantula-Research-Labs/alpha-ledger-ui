@@ -13,8 +13,23 @@ import x from "./experiments.module.css";
 
 // All experiments as cards. Opening one goes to that experiment's dashboard.
 export function ExperimentList({ sections }: { sections: SectionMeta[] }) {
-  const { experiments, datasets } = useLedger();
+  const { experiments, datasets, loading } = useLedger();
   const [creating, setCreating] = useState(false);
+
+  // Until the list has arrived from the server: only the page title and "Loading experiments…".
+  // No cards, no "No experiments yet" and no New experiment card.
+  if (loading) {
+    return (
+      <>
+        <PageHeader
+          title="Your experiments"
+          sub="Pick an experiment to open its dashboard. Each one keeps its own frozen data, features, labels and models, and nothing saved is ever overwritten."
+        />
+        <EmptyState title="Loading experiments…" />
+      </>
+    );
+  }
+
   const rows = [...experiments].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   return (

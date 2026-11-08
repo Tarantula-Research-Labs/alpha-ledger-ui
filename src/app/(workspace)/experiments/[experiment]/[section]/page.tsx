@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { SectionHeader } from "@/features/experiments/SectionHeader";
+import { SectionMarks } from "@/features/marks/SectionMarks";
 import { SECTION_META, findSection } from "@/sections/registry";
 
 type Props = { params: Promise<{ experiment: string; section: string }> };
@@ -22,6 +23,7 @@ export default async function SectionPage({ params }: Props) {
   return (
     <>
       <SectionHeader experiment={experiment} section={meta} sections={SECTION_META} />
+      {def.active && <SectionMarks experiment={experiment} section={def.folder} />}
       <Suspense>
         <Panel experiment={experiment} />
       </Suspense>

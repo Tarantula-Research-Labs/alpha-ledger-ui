@@ -6,6 +6,7 @@ import type { SectionMeta } from "@/core/sections";
 import { ButtonLink, KpiCard, KpiRow, PageHeader, Panel, StatTiles, StatusMark, TwoColumn, VersionTicks, identClass, type Stat } from "@/core/ui";
 import { ClockIcon, SectionIcon, TrendIcon, VersionsIcon } from "@/core/ui/icons";
 import { useLedger } from "@/data/LedgerProvider";
+import { latestMark, useMarks } from "@/data/marks";
 import { allVersions, datasetsFor, findDataset, lastSaved, latestComplete } from "@/data/queries";
 import x from "./experiments.module.css";
 
@@ -13,6 +14,7 @@ import x from "./experiments.module.css";
 // Research charts and reports will be added here once the first baseline is stored.
 export function ExperimentDashboard({ experiment, sections }: { experiment: string; sections: SectionMeta[] }) {
   const { experiments, datasets } = useLedger();
+  const { marks } = useMarks(experiment);
   const exp = experiments.find((e) => e.name === experiment);
   if (!exp) return null;
 
@@ -101,6 +103,7 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
             <ol className={x.pipeline}>
               {sections.map((sec) => {
                 const ds = datasetsFor(datasets, experiment, sec.folder);
+                const mark = latestMark(marks, sec.folder);
                 return (
                   <li key={sec.folder}>
                     <Link href={`/experiments/${experiment}/${sec.folder}`} className={x.stage} data-active={sec.active}>
@@ -114,9 +117,12 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
                         </span>
                         {!sec.active ? (
                           <span className={x.stageNote}>Skipped for now</span>
-                        ) : ds.length === 0 ? (
-                          <span className={x.stageNote}>Nothing saved yet</span>
                         ) : (
+                          <>
+                          <span className={x.stageNote}>
+                            {mark ? `Draft ${mark.draft} complete · ${formatDate(mark.createdAt)}` : "In progress"}
+                          </span>
+                          {ds.length > 0 && (
                           <span className={x.entries}>
                             {ds.map((d) => {
                               const latest = latestComplete(d);
@@ -133,6 +139,8 @@ export function ExperimentDashboard({ experiment, sections }: { experiment: stri
                               );
                             })}
                           </span>
+                          )}
+                          </>
                         )}
                       </span>
                       <span className={x.chev} aria-hidden="true">

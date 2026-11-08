@@ -12,6 +12,6 @@ export default clerkMiddleware((_auth, req) => {
 });
 
 export const config = {
-  // Every page, but not Next.js internals, static files, or /api (the FastAPI proxy, protected separately later).
-  matcher: ["/((?!_next|api|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)"],
+  // Every page and every /api route (the /api route checks the Clerk sign-in itself), but not Next.js internals or static files.
+  matcher: ["/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)", "/(api)(.*)"],
 };

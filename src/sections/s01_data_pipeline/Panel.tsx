@@ -75,7 +75,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
         main={
           <>
             <div style={{ marginBottom: 20 }}>
-              <SavedFiles files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
+              <SavedFiles experiment={experiment} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
             </div>
             {!latest && (
               <div style={{ marginBottom: 20 }}>

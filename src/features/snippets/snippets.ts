@@ -330,7 +330,13 @@ print(f"Saved {slot['saved_as']} (v{slot['version']})")
 `;
 }
 
-export function retrievePipelineFileSnippet(experiment: string): string {
+/** With a file and version: loads exactly that copy. Without: the point-in-time file, newest copy. */
+export function retrievePipelineFileSnippet(
+  experiment: string,
+  file = "Nifty_Midcap150_PointInTime.parquet",
+  version: number | "latest" = "latest",
+): string {
+  const versionLine = version === "latest" ? `VERSION = "latest"` : `VERSION = ${version}`;
   return `# Retrieve from Alpha Ledger: ${experiment} / 01 Data Pipeline
 # Loads a file saved in this experiment's Data Pipeline folder into a DataFrame.
 # VERSION = "latest" loads the newest copy; put a number (e.g. 1) to load a specific one.
@@ -342,8 +348,8 @@ LEDGER_API = "${NOTEBOOK_API_URL}"
 ${LEDGER_CONNECT_KEY}
 ${filesUrl(experiment)}
 
-FILE = "Nifty_Midcap150_PointInTime.parquet"   # the name it was pushed with
-VERSION = "latest"
+FILE = "${file}"   # the name it was pushed with
+${versionLine}
 
 r = requests.get(f"{FILES_URL}/{FILE}/{VERSION}", headers=HEADERS)
 r.raise_for_status()

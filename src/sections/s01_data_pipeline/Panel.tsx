@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCount, formatDate, formatValue } from "@/core/format";
+import { formatDate } from "@/core/format";
 import type { SectionPanelProps } from "@/core/sections";
 import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } from "@/core/ui";
 import p from "@/core/ui/panel.module.css";
@@ -9,6 +9,8 @@ import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
 import { dbConnectSnippet, loadMarketDataSnippet, pushPipelineFileSnippet, retrievePipelineFileSnippet } from "@/features/snippets/snippets";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
+import { formatBytes, usePipelineFiles } from "./files";
+import { SavedFiles } from "./SavedFiles";
 
 const FOLDER = "01_data_pipeline";
 
@@ -49,25 +51,22 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
   const latest = snapshot ? latestComplete(snapshot) : undefined;
 
   const [pulling, setPulling] = useState(false);
+  const { files, loading, error, refresh } = usePipelineFiles(experiment);
 
-  const s = latest?.settings ?? {};
+  // File stats: complete files only (files come newest first).
+  const done = files.filter((f) => f.status === "complete");
+  const newest = done[0];
+  const totalBytes = done.reduce((n, f) => n + (f.sizeBytes ?? 0), 0);
   const stats: [Stat, Stat?][] = [
     [
-      { label: "Snapshot in use", value: latest ? `v${latest.ref.version}` : "None yet", tone: latest ? undefined : "warn" },
-      { label: "Source", value: "trl_datalake" },
+      { label: "Files saved", value: done.length, tone: done.length ? undefined : "warn" },
+      { label: "Total size", value: done.length ? formatBytes(totalBytes) : "–" },
     ],
     [
-      { label: "Rows", value: latest?.rows !== undefined ? formatCount(latest.rows) : "–" },
-      { label: "Columns", value: latest?.columns?.length ?? "–" },
+      { label: "Latest push", value: newest ? formatDate(newest.createdAt) : "–" },
+      { label: "Latest version", value: newest ? `v${newest.version}` : "–" },
     ],
-    [
-      { label: "From", value: s.start ? formatValue(s.start) : "–" },
-      { label: "To", value: s.end ? formatValue(s.end) : "–" },
-    ],
-    [
-      { label: "Saved", value: latest ? formatDate(latest.createdAt) : "–" },
-      { label: "Datasets", value: here.length },
-    ],
+    [{ label: "Source", value: "trl_datalake" }],
   ];
 
   return (
@@ -75,6 +74,9 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       <TwoColumn
         main={
           <>
+            <div style={{ marginBottom: 20 }}>
+              <SavedFiles files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
+            </div>
             {!latest && (
               <div style={{ marginBottom: 20 }}>
                 <Panel title="Notebook steps" icon>

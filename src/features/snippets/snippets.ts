@@ -283,3 +283,75 @@ df = db.wrangle(tickers, "daily")
 df = df.reset_index()
 `;
 }
+
+// Data Pipeline files (saved straight into <experiment>/01_data_pipeline/ in S3, under their own name).
+// Server endpoints, under /experiments/{experiment}/sections/01_data_pipeline:
+//   POST files/{filename}                      -> next free name + 15-minute upload link
+//   POST files/{filename}/{version}/complete   -> the server checks the file is in S3
+//   GET  files/{filename}/{version | latest}   -> 15-minute download link
+const LEDGER_CONNECT_KEY = `load_dotenv()  # reads LEDGER_API_KEY from the .env next to this notebook
+HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}`;
+
+const filesUrl = (experiment: string) =>
+  `FILES_URL = f"{LEDGER_API}/experiments/${experiment}/sections/01_data_pipeline/files"`;
+
+export function pushPipelineFileSnippet(experiment: string): string {
+  return `# Push to Alpha Ledger: ${experiment} / 01 Data Pipeline
+# Uploads your local parquet file into this experiment's Data Pipeline folder in S3,
+# under the same name. Pushing again saves a new numbered copy (_v2, _v3, ...);
+# earlier copies are never changed.
+import os, requests
+import pandas as pd
+from dotenv import load_dotenv
+
+LEDGER_API = "${NOTEBOOK_API_URL}"
+${LEDGER_CONNECT_KEY}
+${filesUrl(experiment)}
+
+LOCAL_FILE = "Nifty_Midcap150_PointInTime.parquet"   # the file to push
+NOTE = ""                                            # optional: what is in this copy
+
+df = pd.read_parquet(LOCAL_FILE)   # read only to record its rows and columns
+name = os.path.basename(LOCAL_FILE)
+
+# 1. Ask the server for the next free name and a 15-minute upload link
+r = requests.post(f"{FILES_URL}/{name}", headers=HEADERS,
+                  json={"rows": len(df), "columns": [str(c) for c in df.columns], "note": NOTE})
+r.raise_for_status()
+slot = r.json()
+
+# 2. Upload the file straight to S3 (the link refuses to overwrite anything)
+with open(LOCAL_FILE, "rb") as f:
+    requests.put(slot["upload_url"], data=f, headers=slot["upload_headers"]).raise_for_status()
+
+# 3. Tell the server the upload finished
+requests.post(f"{FILES_URL}/{name}/{slot['version']}/complete", headers=HEADERS).raise_for_status()
+print(f"Saved {slot['saved_as']} (v{slot['version']})")
+`;
+}
+
+export function retrievePipelineFileSnippet(experiment: string): string {
+  return `# Retrieve from Alpha Ledger: ${experiment} / 01 Data Pipeline
+# Loads a file saved in this experiment's Data Pipeline folder into a DataFrame.
+# VERSION = "latest" loads the newest copy; put a number (e.g. 1) to load a specific one.
+import io, os, requests
+import pandas as pd
+from dotenv import load_dotenv
+
+LEDGER_API = "${NOTEBOOK_API_URL}"
+${LEDGER_CONNECT_KEY}
+${filesUrl(experiment)}
+
+FILE = "Nifty_Midcap150_PointInTime.parquet"   # the name it was pushed with
+VERSION = "latest"
+
+r = requests.get(f"{FILES_URL}/{FILE}/{VERSION}", headers=HEADERS)
+r.raise_for_status()
+info = r.json()
+
+data = requests.get(info["download_url"])   # 15-minute link straight to S3
+data.raise_for_status()
+universe = pd.read_parquet(io.BytesIO(data.content))
+print(f"Loaded {info['saved_as']} (v{info['version']}): {len(universe)} rows")
+`;
+}

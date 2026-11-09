@@ -7,20 +7,35 @@ import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } fro
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { dbConnectSnippet, loadMarketDataSnippet } from "@/features/snippets/snippets";
+import { dbConnectSnippet, loadMarketDataSnippet, pushPipelineFileSnippet, retrievePipelineFileSnippet } from "@/features/snippets/snippets";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 
 const FOLDER = "01_data_pipeline";
 
-// The notebook steps that get the data: connect to the database, then load it.
-// (How the data is saved is decided later, during research.)
-function PullSteps() {
+// The notebook steps: pull from Postgres, then push files to this experiment's folder in S3, and retrieve them.
+function PullSteps({ experiment }: { experiment: string }) {
   return (
     <div className={p.stack}>
-      <p className={p.muted}>1. Connect to the database. Keep the credentials in a .env file next to your notebook.</p>
+      <p className={p.muted}>
+        <strong>1. Connect to the database.</strong> Opens a connection to the market data in Postgres. Keep the database
+        credentials in a .env file next to your notebook.
+      </p>
       <CodeBlock code={dbConnectSnippet()} />
-      <p className={p.muted}>2. Load the data for this experiment.</p>
+      <p className={p.muted}>
+        <strong>2. Load the data.</strong> Reads daily prices for the tickers you list into a DataFrame. Nothing is saved yet.
+      </p>
       <CodeBlock code={loadMarketDataSnippet()} />
+      <p className={p.muted}>
+        <strong>3. Push your file to S3.</strong> Uploads your local parquet file (for example the point-in-time universe) into
+        this experiment&apos;s Data Pipeline folder, under the same name. Pushing again keeps the old copy and saves a new
+        numbered one (_v2, _v3, …). Needs <code>LEDGER_API_KEY=&lt;your key&gt;</code> in the same .env.
+      </p>
+      <CodeBlock code={pushPipelineFileSnippet(experiment)} />
+      <p className={p.muted}>
+        <strong>4. Retrieve it.</strong> Loads a file you pushed back into a DataFrame, in any notebook. Loads the newest copy
+        unless you name a version.
+      </p>
+      <CodeBlock code={retrievePipelineFileSnippet(experiment)} />
     </div>
   );
 }
@@ -62,8 +77,8 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
           <>
             {!latest && (
               <div style={{ marginBottom: 20 }}>
-                <Panel title="Pull this experiment's data" icon>
-                  <PullSteps />
+                <Panel title="Notebook steps" icon>
+                  <PullSteps experiment={experiment} />
                 </Panel>
               </div>
             )}
@@ -88,7 +103,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       />
 
       <Dialog open={pulling} onClose={() => setPulling(false)} title="Pull a new snapshot" wide>
-        <PullSteps />
+        <PullSteps experiment={experiment} />
       </Dialog>
       <VersionDrawer experiment={experiment} section={FOLDER} />
     </>

@@ -71,12 +71,13 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
 
   return (
     <>
+      {/* Full width: the table has many columns. */}
+      <div style={{ marginBottom: 20, minWidth: 0 }}>
+        <SavedFiles experiment={experiment} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
+      </div>
       <TwoColumn
         main={
           <>
-            <div style={{ marginBottom: 20 }}>
-              <SavedFiles experiment={experiment} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
-            </div>
             {!latest && (
               <div style={{ marginBottom: 20 }}>
                 <Panel title="Notebook steps" icon>

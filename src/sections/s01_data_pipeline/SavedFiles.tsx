@@ -42,7 +42,7 @@ function CopyCodeButton({ experiment, file }: { experiment: string; file: Pipeli
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
-      await navigator.clipboard.writeText(retrievePipelineFileSnippet(experiment, file.file, file.version));
+      await navigator.clipboard.writeText(retrievePipelineFileSnippet(experiment, file.file, file.version, true));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {

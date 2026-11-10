@@ -3,44 +3,17 @@
 import { useState } from "react";
 import { formatDate } from "@/core/format";
 import type { SectionPanelProps } from "@/core/sections";
-import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } from "@/core/ui";
+import { Button, Dialog, Panel, StatTiles, type Stat } from "@/core/ui";
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { dbConnectSnippet, loadMarketDataSnippet, pushPipelineFileSnippet, pushPipelineImportsSnippet, retrievePipelineFileSnippet } from "@/features/snippets/snippets";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 import { formatBytes, usePipelineFiles } from "./files";
+import { NotebookSteps } from "./NotebookSteps";
 import { SavedFiles } from "./SavedFiles";
+import a from "./steps.module.css";
 
 const FOLDER = "01_data_pipeline";
-
-// The notebook steps: pull from Postgres, then push files to this experiment's folder in S3, and retrieve them.
-function PullSteps({ experiment }: { experiment: string }) {
-  return (
-    <div className={p.stack}>
-      <p className={p.muted}>
-        <strong>1. Connect to the database.</strong> Opens a connection to the market data in Postgres. Keep the database
-        credentials in a .env file next to your notebook.
-      </p>
-      <CodeBlock code={dbConnectSnippet()} />
-      <p className={p.muted}>
-        <strong>2. Load the data.</strong> Reads daily prices for the tickers you list into a DataFrame. Nothing is saved yet.
-      </p>
-      <CodeBlock code={loadMarketDataSnippet()} />
-      <p className={p.muted}>
-        <strong>3. Push your data to S3.</strong> Saves a DataFrame straight into this experiment&apos;s Data Pipeline folder,
-        under the name you give it. Pushing the same name again keeps the old copy and saves a new numbered one (_v2, _v3, …).
-        Run the imports on the right first. Needs <code>LEDGER_API_KEY=&lt;your key&gt;</code> in the same .env.
-      </p>
-      <CodeBlock code={pushPipelineFileSnippet(experiment)} />
-      <p className={p.muted}>
-        <strong>4. Retrieve it.</strong> Loads a file you pushed back into a DataFrame, in any notebook. Loads the newest copy
-        unless you name a version.
-      </p>
-      <CodeBlock code={retrievePipelineFileSnippet(experiment)} />
-    </div>
-  );
-}
 
 // Every experiment pulls its own data fresh from trl_datalake.
 // (Cloning an experiment with its data is planned for phase 2.)
@@ -75,41 +48,23 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
       <div style={{ marginBottom: 20, minWidth: 0 }}>
         <SavedFiles experiment={experiment} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
       </div>
-      <TwoColumn
-        main={
-          <>
-            {!latest && (
-              <div style={{ marginBottom: 20 }}>
-                <Panel title="Notebook steps" icon>
-                  <PullSteps experiment={experiment} />
-                </Panel>
-              </div>
-            )}
-            {latest && (
-              <p className={p.note}>
-                Snapshot v{latest.ref.version} is <strong>a fresh pull from trl_datalake</strong>. Every later section reads this frozen copy.
-              </p>
-            )}
-          </>
-        }
-        aside={
-          <>
-            <StatTiles rows={stats} />
-            <Panel title="Imports for step 3" icon>
-              <CodeBlock code={pushPipelineImportsSnippet()} />
-            </Panel>
-            {latest && (
-              <Panel title="trl_datalake" icon>
-                <p className={p.text}>Need newer data? Pull again and save it as the next snapshot version. Earlier versions stay as they are.</p>
-                <Button onClick={() => setPulling(true)}>Pull a new snapshot</Button>
-              </Panel>
-            )}
-          </>
-        }
-      />
+      <div className={a.tiles}>
+        <StatTiles rows={stats} />
+      </div>
+      {latest && (
+        <div style={{ marginBottom: 20 }}>
+          <Panel title="trl_datalake" icon>
+            <p className={p.text}>Need newer data? Pull again and save it as the next snapshot version. Earlier versions stay as they are.</p>
+            <Button onClick={() => setPulling(true)}>Pull a new snapshot</Button>
+          </Panel>
+        </div>
+      )}
+      <Panel title="Notebook steps" icon flush>
+        <NotebookSteps experiment={experiment} />
+      </Panel>
 
       <Dialog open={pulling} onClose={() => setPulling(false)} title="Pull a new snapshot" wide>
-        <PullSteps experiment={experiment} />
+        <NotebookSteps experiment={experiment} />
       </Dialog>
       <VersionDrawer experiment={experiment} section={FOLDER} />
     </>

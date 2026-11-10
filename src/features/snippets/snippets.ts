@@ -295,37 +295,32 @@ HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}`;
 const filesUrl = (experiment: string) =>
   `FILES_URL = f"{LEDGER_API}/experiments/${experiment}/sections/01_data_pipeline/files"`;
 
-export function pushPipelineFileSnippet(experiment: string): string {
-  return `# Push to Alpha Ledger: ${experiment} / 01 Data Pipeline
-# Uploads your local parquet file into this experiment's Data Pipeline folder in S3,
-# under the same name. Pushing again saves a new numbered copy (_v2, _v3, ...);
-# earlier copies are never changed.
-import os, requests
-import pandas as pd
+/** Imports for the push snippet, shown on the right of the Data Pipeline page. */
+export function pushPipelineImportsSnippet(): string {
+  return `import io, os, requests
 from dotenv import load_dotenv
+`;
+}
 
+export function pushPipelineFileSnippet(experiment: string): string {
+  return `load_dotenv()
 LEDGER_API = "${NOTEBOOK_API_URL}"
-${LEDGER_CONNECT_KEY}
+HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
 ${filesUrl(experiment)}
 
-LOCAL_FILE = "Nifty_Midcap150_PointInTime.parquet"   # the file to push
-NOTE = ""                                            # optional: what is in this copy
+DATA = df                                     # change: the DataFrame to push
+NAME = "Nifty_Midcap150_OHLCV_daily.parquet"  # change: the file name (same name = new version)
 
-df = pd.read_parquet(LOCAL_FILE)   # read only to record its rows and columns
-name = os.path.basename(LOCAL_FILE)
+buf = io.BytesIO()
+DATA.to_parquet(buf)
 
-# 1. Ask the server for the next free name and a 15-minute upload link
-r = requests.post(f"{FILES_URL}/{name}", headers=HEADERS,
-                  json={"rows": len(df), "columns": [str(c) for c in df.columns], "note": NOTE})
+r = requests.post(f"{FILES_URL}/{NAME}", headers=HEADERS,
+                  json={"rows": len(DATA), "columns": [str(c) for c in DATA.columns]})
 r.raise_for_status()
 slot = r.json()
 
-# 2. Upload the file straight to S3 (the link refuses to overwrite anything)
-with open(LOCAL_FILE, "rb") as f:
-    requests.put(slot["upload_url"], data=f, headers=slot["upload_headers"]).raise_for_status()
-
-# 3. Tell the server the upload finished
-requests.post(f"{FILES_URL}/{name}/{slot['version']}/complete", headers=HEADERS).raise_for_status()
+requests.put(slot["upload_url"], data=buf.getvalue(), headers=slot["upload_headers"]).raise_for_status()
+requests.post(f"{FILES_URL}/{NAME}/{slot['version']}/complete", headers=HEADERS).raise_for_status()
 print(f"Saved {slot['saved_as']} (v{slot['version']})")
 `;
 }

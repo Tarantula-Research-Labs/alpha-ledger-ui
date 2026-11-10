@@ -7,7 +7,7 @@ import { Button, CodeBlock, Dialog, Panel, StatTiles, TwoColumn, type Stat } fro
 import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
-import { dbConnectSnippet, loadMarketDataSnippet, pushPipelineFileSnippet, retrievePipelineFileSnippet } from "@/features/snippets/snippets";
+import { dbConnectSnippet, loadMarketDataSnippet, pushPipelineFileSnippet, pushPipelineImportsSnippet, retrievePipelineFileSnippet } from "@/features/snippets/snippets";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
 import { formatBytes, usePipelineFiles } from "./files";
 import { SavedFiles } from "./SavedFiles";
@@ -28,9 +28,9 @@ function PullSteps({ experiment }: { experiment: string }) {
       </p>
       <CodeBlock code={loadMarketDataSnippet()} />
       <p className={p.muted}>
-        <strong>3. Push your file to S3.</strong> Uploads your local parquet file (for example the point-in-time universe) into
-        this experiment&apos;s Data Pipeline folder, under the same name. Pushing again keeps the old copy and saves a new
-        numbered one (_v2, _v3, …). Needs <code>LEDGER_API_KEY=&lt;your key&gt;</code> in the same .env.
+        <strong>3. Push your data to S3.</strong> Saves a DataFrame straight into this experiment&apos;s Data Pipeline folder,
+        under the name you give it. Pushing the same name again keeps the old copy and saves a new numbered one (_v2, _v3, …).
+        Run the imports on the right first. Needs <code>LEDGER_API_KEY=&lt;your key&gt;</code> in the same .env.
       </p>
       <CodeBlock code={pushPipelineFileSnippet(experiment)} />
       <p className={p.muted}>
@@ -95,6 +95,9 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
         aside={
           <>
             <StatTiles rows={stats} />
+            <Panel title="Imports for step 3" icon>
+              <CodeBlock code={pushPipelineImportsSnippet()} />
+            </Panel>
             {latest && (
               <Panel title="trl_datalake" icon>
                 <p className={p.text}>Need newer data? Pull again and save it as the next snapshot version. Earlier versions stay as they are.</p>

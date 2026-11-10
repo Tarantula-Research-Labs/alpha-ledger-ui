@@ -361,5 +361,6 @@ data = requests.get(info["download_url"])
 data.raise_for_status()
 df = pd.read_parquet(io.BytesIO(data.content))
 print(f"Loaded {info['saved_as']} (v{info['version']}): {len(df)} rows")
+df.head()
 `;
 }

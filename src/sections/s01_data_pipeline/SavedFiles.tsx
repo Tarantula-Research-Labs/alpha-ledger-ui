@@ -52,6 +52,33 @@ function CopyCodeButton({ experiment, file }: { experiment: string; file: Pipeli
   return <Button onClick={() => void copy()}>{copied ? "Copied" : "Copy code"}</Button>;
 }
 
+// Delete: move this version to the trash (S3 removes it for good after 30 days).
+function DeleteButton({ experiment, file, onDeleted }: { experiment: string; file: PipelineFile; onDeleted: () => void }) {
+  const [busy, setBusy] = useState(false);
+  async function remove() {
+    const ok = window.confirm(
+      `Move ${file.savedAs} to the trash?\n\nIt is removed for good after 30 days. The next push of ${file.file} will reuse v${file.version}.`,
+    );
+    if (!ok) return;
+    setBusy(true);
+    try {
+      await apiRequest(`/experiments/${experiment}/sections/01_data_pipeline/files/${encodeURIComponent(file.file)}/${file.version}`, {
+        method: "DELETE",
+      });
+      onDeleted();
+    } catch (e) {
+      window.alert(e instanceof ApiError ? e.message : "Couldn't delete the file.");
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Button variant="quiet" onClick={() => void remove()} disabled={busy}>
+      {busy ? "Deleting…" : "Delete"}
+    </Button>
+  );
+}
+
 // Every file in this experiment's Data Pipeline folder in S3, newest first.
 export function SavedFiles({
   experiment,
@@ -95,6 +122,7 @@ export function SavedFiles({
                 <th scope="col">Status</th>
                 <th scope="col">Download</th>
                 <th scope="col">Code</th>
+                <th scope="col">Delete</th>
               </tr>
             </thead>
             <tbody>
@@ -114,6 +142,9 @@ export function SavedFiles({
                   </td>
                   <td>{x.status === "complete" ? <DownloadButton experiment={experiment} file={x} /> : "–"}</td>
                   <td>{x.status === "complete" ? <CopyCodeButton experiment={experiment} file={x} /> : "–"}</td>
+                  <td>
+                    <DeleteButton experiment={experiment} file={x} onDeleted={onRefresh} />
+                  </td>
                 </tr>
               ))}
             </tbody>

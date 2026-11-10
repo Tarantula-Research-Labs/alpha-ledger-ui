@@ -95,6 +95,12 @@ export const CodeIcon = () => (
   </svg>
 );
 
+export const ToolsIcon = () => (
+  <svg {...base}>
+    <path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L4 17l3 3 5.3-5.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z" />
+  </svg>
+);
+
 /* Section icons, chosen by name in each section's index.ts */
 const SECTION_ICONS: Record<string, () => React.JSX.Element> = {
   database: () => (

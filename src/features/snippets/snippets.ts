@@ -364,3 +364,105 @@ print(f"Loaded {info['saved_as']} (v{info['version']}): {len(df)} rows")
 df.head()
 `;
 }
+
+/** Tools: walk-forward splits on calendar months, with a trading-day gap. */
+export function walkForwardImportsSnippet(): string {
+  return `import numpy as np
+import pandas as pd
+`;
+}
+
+export function walkForwardSnippet(): string {
+  return `class WALKFORWARDSPLIT:
+    """
+    Walk-forward splits based on calendar months.
+
+    Splits on DATES, not row positions. Every row with the same date
+    goes to the same side, so a date can never be in both train and test.
+    Works with pooled (stock x date) frames that have duplicate dates.
+
+    Parameters
+    ----------
+    train_months : int   Length of the training window, in months.
+    test_months  : int   Length of each test window, in months (1, 3, 6 ...).
+    step_months  : int   How far to move forward each fold. Default = test_months.
+    expanding    : bool  True  = train always starts at the first date (grows).
+                         False = train is a fixed-length rolling window.
+    gap          : int   Trading days dropped between train end and test start.
+                         Counted from the actual dates in your data, so
+                         weekends and holidays don't count.
+                         Set it to how many days ahead your label looks.
+    date_col     : str   Column holding the dates. None = use the index.
+    """
+
+    def __init__(self, train_months=15, test_months=3, step_months=None,
+                 expanding=True, gap=0, date_col=None):
+        self.train_months = train_months
+        self.test_months = test_months
+        self.step_months = step_months or test_months
+        self.expanding = expanding
+        self.gap = gap
+        self.date_col = date_col
+
+    def _dates(self, df):
+        d = df.index if self.date_col is None else df[self.date_col]
+        return pd.DatetimeIndex(pd.to_datetime(d))
+
+    def split(self, df):
+        """Yield (train_positions, test_positions) for use with df.iloc."""
+        dates = self._dates(df)
+        first, last = dates.min(), dates.max()
+
+        # Sorted list of trading days that exist in the data
+        trading_days = dates.unique().sort_values()
+
+        # Start at the beginning of the first month.
+        # Keep the data's timezone (None if the dates have no timezone).
+        start = pd.Timestamp(year=first.year, month=first.month, day=1, tz=first.tz)
+        cutoff = start + pd.DateOffset(months=self.train_months)
+
+        while cutoff <= last:
+            if self.expanding:
+                train_start = start
+            else:
+                train_start = cutoff - pd.DateOffset(months=self.train_months)
+
+            test_end = cutoff + pd.DateOffset(months=self.test_months)
+
+            # Position of the first trading day in the test block.
+            # Step back \`gap\` trading days to get where training stops.
+            test_pos = trading_days.searchsorted(cutoff)
+            train_end_pos = test_pos - self.gap
+            if train_end_pos <= 0:
+                cutoff += pd.DateOffset(months=self.step_months)
+                continue
+            train_end = trading_days[train_end_pos]
+
+            train_mask = (dates >= train_start) & (dates < train_end)
+            test_mask = (dates >= cutoff) & (dates < test_end)
+
+            if train_mask.any() and test_mask.any():
+                yield np.where(train_mask)[0], np.where(test_mask)[0]
+
+            cutoff += pd.DateOffset(months=self.step_months)
+
+    def get_n_splits(self, df):
+        return sum(1 for _ in self.split(df))
+
+    def describe(self, df):
+        """Table of the date range of each fold."""
+        dates = self._dates(df)
+        rows = []
+        for i, (tr, te) in enumerate(self.split(df)):
+            rows.append({
+                "fold": i,
+                "train_start": dates[tr].min().date(),
+                "train_end": dates[tr].max().date(),
+                "test_start": dates[te].min().date(),
+                "test_end": dates[te].max().date(),
+                "train_rows": len(tr),
+                "test_rows": len(te),
+            })
+        return pd.DataFrame(rows)
+`;
+}

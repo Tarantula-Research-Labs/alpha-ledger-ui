@@ -6,14 +6,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { SectionMeta } from "@/core/sections";
 import { identClass } from "@/core/ui";
 import { LedgerMark } from "@/core/ui/LedgerMark";
-import { BackIcon, DashboardIcon, MenuIcon, SectionIcon, StatusIcon } from "@/core/ui/icons";
+import { BackIcon, DashboardIcon, MenuIcon, SectionIcon, StatusIcon, ToolsIcon } from "@/core/ui/icons";
 import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
 import { sectionStates, useMarks } from "@/data/marks";
 import { datasetsFor } from "@/data/queries";
-import { OhlcvButton } from "./OhlcvButton";
 import { ServerDot, ServerLight } from "./ServerDot";
 import { ThemeToggle } from "./ThemeToggle";
+import { ToolsButton } from "./ToolsButton";
 import { UserChip } from "./UserChip";
 import s from "./shell.module.css";
 import w from "./workspace.module.css";
@@ -31,6 +31,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
   useEffect(() => setOpen(false), [pathname]);
 
   const current = sections.find((sec) => pathname.startsWith(`${base}/${sec.folder}`));
+  const onTools = pathname === `${base}/tools`;
 
   return (
     <div className={w.frame} data-theme={theme}>
@@ -91,6 +92,15 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
               );
             })}
           </ul>
+
+          <ul className={w.list}>
+            <li>
+              <Link href={`${base}/tools`} className={w.item} aria-current={onTools ? "page" : undefined}>
+                <ToolsIcon />
+                <span className={w.itemText}>Tools</span>
+              </Link>
+            </li>
+          </ul>
         </nav>
 
         <div className={w.bottom}>
@@ -121,15 +131,13 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
           <nav aria-label="Breadcrumb" className={w.crumbs}>
             <Link href="/experiments">Experiments</Link>
             <span aria-hidden="true">/</span>
-            {current ? (
+            {current || onTools ? (
               <>
                 <Link href={base} className={identClass}>
                   {experiment}
                 </Link>
                 <span aria-hidden="true">/</span>
-                <span aria-current="page">
-                  {current.number} {current.title}
-                </span>
+                <span aria-current="page">{current ? `${current.number} ${current.title}` : "Tools"}</span>
               </>
             ) : (
               <span aria-current="page" className={identClass}>
@@ -138,7 +146,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
             )}
           </nav>
           <div className={w.topRight}>
-            <OhlcvButton />
+            <ToolsButton href={`${base}/tools`} />
             <ThemeToggle />
             <ServerDot />
             <UserChip />

@@ -131,18 +131,22 @@ print("Pushed version", version)
 }
 
 /** Step 1 of Data Pipeline: Luv's DBCONNECT class for the Postgres market data database. */
-export function dbConnectSnippet(): string {
-  return `"""Connects to the QuantX Postgres DB and loads NSE OHLCV data into pandas DataFrames."""
-
+/** Imports for the DBCONNECT snippet, shown on the right of its step. */
+export function dbConnectImportsSnippet(): string {
+  return `import os
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+`;
+}
+
+export function dbConnectSnippet(): string {
+  return `"""Connects to the QuantX Postgres DB and loads NSE OHLCV data into pandas DataFrames."""
 
 # Load .env into os.environ so the DB credentials can be read with os.getenv().
 load_dotenv()
-import os
-from sqlalchemy import create_engine, text
 
 
 class DBCONNECT:
@@ -326,33 +330,36 @@ print(f"Saved {slot['saved_as']} (v{slot['version']})")
 }
 
 /** With a file and version: loads exactly that copy. Without: the point-in-time file, newest copy. */
+/** Imports for the retrieve snippet, shown on the right of its step. */
+export function retrievePipelineImportsSnippet(): string {
+  return `import io, os, requests
+import pandas as pd
+from dotenv import load_dotenv
+`;
+}
+
 export function retrievePipelineFileSnippet(
   experiment: string,
   file = "Nifty_Midcap150_PointInTime.parquet",
   version: number | "latest" = "latest",
+  withImports = false,
 ): string {
   const versionLine = version === "latest" ? `VERSION = "latest"` : `VERSION = ${version}`;
-  return `# Retrieve from Alpha Ledger: ${experiment} / 01 Data Pipeline
-# Loads a file saved in this experiment's Data Pipeline folder into a DataFrame.
-# VERSION = "latest" loads the newest copy; put a number (e.g. 1) to load a specific one.
-import io, os, requests
-import pandas as pd
-from dotenv import load_dotenv
-
+  return `${withImports ? retrievePipelineImportsSnippet() + "\n" : ""}load_dotenv()
 LEDGER_API = "${NOTEBOOK_API_URL}"
-${LEDGER_CONNECT_KEY}
+HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
 ${filesUrl(experiment)}
 
-FILE = "${file}"   # the name it was pushed with
-${versionLine}
+FILE = "${file}"  # change: the name it was pushed with
+${versionLine}  # change: a version number, or "latest"
 
 r = requests.get(f"{FILES_URL}/{FILE}/{VERSION}", headers=HEADERS)
 r.raise_for_status()
 info = r.json()
 
-data = requests.get(info["download_url"])   # 15-minute link straight to S3
+data = requests.get(info["download_url"])
 data.raise_for_status()
-universe = pd.read_parquet(io.BytesIO(data.content))
-print(f"Loaded {info['saved_as']} (v{info['version']}): {len(universe)} rows")
+df = pd.read_parquet(io.BytesIO(data.content))
+print(f"Loaded {info['saved_as']} (v{info['version']}): {len(df)} rows")
 `;
 }

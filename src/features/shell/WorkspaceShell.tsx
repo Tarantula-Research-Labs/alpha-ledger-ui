@@ -11,6 +11,7 @@ import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
 import { sectionStates, useMarks } from "@/data/marks";
 import { datasetsFor } from "@/data/queries";
+import { OhlcvButton } from "./OhlcvButton";
 import { ServerDot, ServerLight } from "./ServerDot";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserChip } from "./UserChip";
@@ -137,6 +138,7 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
             )}
           </nav>
           <div className={w.topRight}>
+            <OhlcvButton />
             <ThemeToggle />
             <ServerDot />
             <UserChip />

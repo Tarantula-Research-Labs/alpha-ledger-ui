@@ -57,35 +57,37 @@ const TOOLS: Tool[] = [
   },
   {
     title: "Transaction costs",
-    text: "Cost rates for backtests, as a % of the traded amount, charged on each side.",
+    text: "Cost rates for backtests, as a % of the traded amount.",
     body: (
       <>
+        <p className={t.text}>
+          <strong>Unit:</strong> % of traded amount. <strong>Basis:</strong> round trip (entry + exit).{" "}
+          <strong>Per side:</strong> applied to each side&apos;s traded amount.
+        </p>
         <table className={t.table}>
           <thead>
             <tr>
               <th scope="col">Trade type</th>
-              <th scope="col">Rate per side</th>
-              <th scope="col">Round trip, as % of the position</th>
+              <th scope="col">Round trip</th>
+              <th scope="col">Per side</th>
             </tr>
           </thead>
           <tbody>
             <tr>
               <th scope="row">Intraday</th>
               <td>{pct(COST_PER_SIDE.intraday)}</td>
-              <td>{pct(COST_PER_SIDE.intraday * 2)}</td>
+              <td>{pct(COST_PER_SIDE.intraday)}</td>
             </tr>
             <tr>
               <th scope="row">Delivery</th>
               <td>{pct(COST_PER_SIDE.delivery)}</td>
-              <td>{pct(COST_PER_SIDE.delivery * 2)}</td>
+              <td>{pct(COST_PER_SIDE.delivery)}</td>
             </tr>
           </tbody>
         </table>
         <p className={t.text}>
-          Apply the rate to <strong>each side&apos;s traded amount</strong>: once on the buy and again on the sell. Example
-          (delivery): a ₹10L position bought and sold trades ₹20L in total, so it costs ₹1,112.41 + ₹1,112.41 = ₹2,224.81,
-          which is 0.11124% of the ₹20L traded but {pct(COST_PER_SIDE.delivery * 2)} of the ₹10L position. In a backtest:
-          cost = turnover × rate.
+          <strong>Why the % does not halve per side:</strong> both the cost and the traded amount halve. ₹2,224.81 ÷ ₹20L =
+          0.11124% (round trip); ₹1,112.41 ÷ ₹10L = 0.11124% (per side).
         </p>
         <CodeRow code={costsSnippet} none="No imports needed." />
       </>

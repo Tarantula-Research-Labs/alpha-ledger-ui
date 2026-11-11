@@ -288,32 +288,32 @@ df = df.reset_index()
 `;
 }
 
-// Data Pipeline files (saved straight into <experiment>/01_data_pipeline/ in S3, under their own name).
-// Server endpoints, under /experiments/{experiment}/sections/01_data_pipeline:
+// Section files (saved straight into <experiment>/<section>/ in S3, under their own name). Same for every section.
+// Server endpoints, under /experiments/{experiment}/sections/{section}:
 //   POST files/{filename}                      -> next free name + 15-minute upload link
 //   POST files/{filename}/{version}/complete   -> the server checks the file is in S3
 //   GET  files/{filename}/{version | latest}   -> 15-minute download link
 const LEDGER_CONNECT_KEY = `load_dotenv()  # reads LEDGER_API_KEY from the .env next to this notebook
 HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}`;
 
-const filesUrl = (experiment: string) =>
-  `FILES_URL = f"{LEDGER_API}/experiments/${experiment}/sections/01_data_pipeline/files"`;
+const filesUrl = (experiment: string, section: string) =>
+  `FILES_URL = f"{LEDGER_API}/experiments/${experiment}/sections/${section}/files"`;
 
-/** Imports for the push snippet, shown on the right of the Data Pipeline page. */
-export function pushPipelineImportsSnippet(): string {
+/** Imports for the push snippet, shown on the right of its step. */
+export function pushFileImportsSnippet(): string {
   return `import io, os, requests
 from dotenv import load_dotenv
 `;
 }
 
-export function pushPipelineFileSnippet(experiment: string): string {
+export function pushFileSnippet(experiment: string, section: string, name: string): string {
   return `load_dotenv()
 LEDGER_API = "${NOTEBOOK_API_URL}"
 HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
-${filesUrl(experiment)}
+${filesUrl(experiment, section)}
 
-DATA = df                                     # change: the DataFrame to push
-NAME = "Nifty_Midcap150_OHLCV_daily.parquet"  # change: the file name (same name = new version)
+DATA = df  # change: the DataFrame to push
+NAME = "${name}"  # change: the file name (same name = new version)
 
 buf = io.BytesIO()
 DATA.to_parquet(buf)
@@ -329,26 +329,27 @@ print(f"Saved {slot['saved_as']} (v{slot['version']})")
 `;
 }
 
-/** With a file and version: loads exactly that copy. Without: the point-in-time file, newest copy. */
 /** Imports for the retrieve snippet, shown on the right of its step. */
-export function retrievePipelineImportsSnippet(): string {
+export function retrieveFileImportsSnippet(): string {
   return `import io, os, requests
 import pandas as pd
 from dotenv import load_dotenv
 `;
 }
 
-export function retrievePipelineFileSnippet(
+/** Loads one file from a section: a version number for exactly that copy, or "latest". */
+export function retrieveFileSnippet(
   experiment: string,
-  file = "Nifty_Midcap150_PointInTime.parquet",
+  section: string,
+  file: string,
   version: number | "latest" = "latest",
   withImports = false,
 ): string {
   const versionLine = version === "latest" ? `VERSION = "latest"` : `VERSION = ${version}`;
-  return `${withImports ? retrievePipelineImportsSnippet() + "\n" : ""}load_dotenv()
+  return `${withImports ? retrieveFileImportsSnippet() + "\n" : ""}load_dotenv()
 LEDGER_API = "${NOTEBOOK_API_URL}"
 HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
-${filesUrl(experiment)}
+${filesUrl(experiment, section)}
 
 FILE = "${file}"  # change: the name it was pushed with
 ${versionLine}  # change: a version number, or "latest"

@@ -4,18 +4,18 @@ import { useState } from "react";
 import { ApiError, apiRequest } from "@/core/api";
 import { formatCount, formatDate } from "@/core/format";
 import { Button, Panel, StatusMark, identClass } from "@/core/ui";
-import { retrievePipelineFileSnippet } from "@/features/snippets/snippets";
-import { formatBytes, type PipelineFile } from "./files";
+import { retrieveFileSnippet } from "@/features/snippets/snippets";
+import { formatBytes, type SectionFile } from "./files";
 import f from "./files.module.css";
 
 // Download: ask the server for a 15-minute link, then the browser downloads straight from S3.
-function DownloadButton({ experiment, file }: { experiment: string; file: PipelineFile }) {
+function DownloadButton({ experiment, section, file }: { experiment: string; section: string; file: SectionFile }) {
   const [busy, setBusy] = useState(false);
   async function download() {
     setBusy(true);
     try {
       const r = await apiRequest<{ download_url: string }>(
-        `/experiments/${experiment}/sections/01_data_pipeline/files/${encodeURIComponent(file.file)}/${file.version}`,
+        `/experiments/${experiment}/sections/${section}/files/${encodeURIComponent(file.file)}/${file.version}`,
       );
       const a = document.createElement("a");
       a.href = r.download_url;
@@ -38,11 +38,11 @@ function DownloadButton({ experiment, file }: { experiment: string; file: Pipeli
 }
 
 // Copy code: a retrieve snippet pinned to exactly this file and version.
-function CopyCodeButton({ experiment, file }: { experiment: string; file: PipelineFile }) {
+function CopyCodeButton({ experiment, section, file }: { experiment: string; section: string; file: SectionFile }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
-      await navigator.clipboard.writeText(retrievePipelineFileSnippet(experiment, file.file, file.version, true));
+      await navigator.clipboard.writeText(retrieveFileSnippet(experiment, section, file.file, file.version, true));
       setCopied(true);
       setTimeout(() => setCopied(false), 1500);
     } catch {
@@ -53,7 +53,7 @@ function CopyCodeButton({ experiment, file }: { experiment: string; file: Pipeli
 }
 
 // Delete: move this version to the trash (S3 removes it for good after 30 days).
-function DeleteButton({ experiment, file, onDeleted }: { experiment: string; file: PipelineFile; onDeleted: () => void }) {
+function DeleteButton({ experiment, section, file, onDeleted }: { experiment: string; section: string; file: SectionFile; onDeleted: () => void }) {
   const [busy, setBusy] = useState(false);
   async function remove() {
     const ok = window.confirm(
@@ -62,7 +62,7 @@ function DeleteButton({ experiment, file, onDeleted }: { experiment: string; fil
     if (!ok) return;
     setBusy(true);
     try {
-      await apiRequest(`/experiments/${experiment}/sections/01_data_pipeline/files/${encodeURIComponent(file.file)}/${file.version}`, {
+      await apiRequest(`/experiments/${experiment}/sections/${section}/files/${encodeURIComponent(file.file)}/${file.version}`, {
         method: "DELETE",
       });
       onDeleted();
@@ -79,16 +79,18 @@ function DeleteButton({ experiment, file, onDeleted }: { experiment: string; fil
   );
 }
 
-// Every file in this experiment's Data Pipeline folder in S3, newest first.
+// Every file in one section's folder in S3 for this experiment, newest first.
 export function SavedFiles({
   experiment,
+  section,
   files,
   loading,
   error,
   onRefresh,
 }: {
   experiment: string;
-  files: PipelineFile[];
+  section: string;
+  files: SectionFile[];
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
@@ -107,7 +109,7 @@ export function SavedFiles({
       {error ? (
         <p className={f.empty}>{error}</p>
       ) : !loading && files.length === 0 ? (
-        <p className={f.empty}>No files yet. Use step 3 below to push one.</p>
+        <p className={f.empty}>No files yet. Use the push step below to save one.</p>
       ) : (
         <div className={f.scroll}>
           <table className={f.table}>
@@ -140,10 +142,10 @@ export function SavedFiles({
                   <td>
                     <StatusMark status={x.status} />
                   </td>
-                  <td>{x.status === "complete" ? <DownloadButton experiment={experiment} file={x} /> : "–"}</td>
-                  <td>{x.status === "complete" ? <CopyCodeButton experiment={experiment} file={x} /> : "–"}</td>
+                  <td>{x.status === "complete" ? <DownloadButton experiment={experiment} section={section} file={x} /> : "–"}</td>
+                  <td>{x.status === "complete" ? <CopyCodeButton experiment={experiment} section={section} file={x} /> : "–"}</td>
                   <td>
-                    <DeleteButton experiment={experiment} file={x} onDeleted={onRefresh} />
+                    <DeleteButton experiment={experiment} section={section} file={x} onDeleted={onRefresh} />
                   </td>
                 </tr>
               ))}

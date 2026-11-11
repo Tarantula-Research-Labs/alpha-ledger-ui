@@ -8,10 +8,10 @@ import p from "@/core/ui/panel.module.css";
 import { useLedger } from "@/data/LedgerProvider";
 import { datasetsFor, latestComplete } from "@/data/queries";
 import { VersionDrawer } from "@/features/versions/VersionDrawer";
-import { formatBytes, usePipelineFiles } from "./files";
+import { formatBytes, useSectionFiles } from "@/features/files/files";
+import { SavedFiles } from "@/features/files/SavedFiles";
+import a from "@/features/files/steps.module.css";
 import { NotebookSteps } from "./NotebookSteps";
-import { SavedFiles } from "./SavedFiles";
-import a from "./steps.module.css";
 
 const FOLDER = "01_data_pipeline";
 
@@ -24,7 +24,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
   const latest = snapshot ? latestComplete(snapshot) : undefined;
 
   const [pulling, setPulling] = useState(false);
-  const { files, loading, error, refresh } = usePipelineFiles(experiment);
+  const { files, loading, error, refresh } = useSectionFiles(experiment, FOLDER);
 
   // File stats: complete files only (files come newest first).
   const done = files.filter((f) => f.status === "complete");
@@ -46,7 +46,7 @@ export function DataPipelinePanel({ experiment }: SectionPanelProps) {
     <>
       {/* Full width: the table has many columns. */}
       <div style={{ marginBottom: 20, minWidth: 0 }}>
-        <SavedFiles experiment={experiment} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
+        <SavedFiles experiment={experiment} section={FOLDER} files={files} loading={loading} error={error} onRefresh={() => void refresh()} />
       </div>
       <div className={a.tiles}>
         <StatTiles rows={stats} />

@@ -1,12 +1,12 @@
 "use client";
 
-// The files pushed into this experiment's Data Pipeline folder in S3, as the server records them.
+// The files pushed into one section's folder in S3 (e.g. 01_data_pipeline), as the server records them.
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/core/api";
 import type { VersionStatus } from "@/core/types";
 import { useLedger } from "@/data/LedgerProvider";
 
-export interface PipelineFile {
+export interface SectionFile {
   file: string;
   version: number;
   savedAs: string;
@@ -30,7 +30,7 @@ interface ServerFile {
   created_at: string;
 }
 
-const toFile = (f: ServerFile): PipelineFile => ({
+const toFile = (f: ServerFile): SectionFile => ({
   file: f.file,
   version: f.version,
   savedAs: f.saved_as,
@@ -49,16 +49,16 @@ export function formatBytes(n: number): string {
   return `${(n / 1024 ** 3).toFixed(2)} GB`;
 }
 
-export function usePipelineFiles(experiment: string) {
+export function useSectionFiles(experiment: string, section: string) {
   const { server } = useLedger();
-  const [files, setFiles] = useState<PipelineFile[]>([]);
+  const [files, setFiles] = useState<SectionFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     setLoading(true);
     try {
-      const list = await apiRequest<ServerFile[]>(`/experiments/${experiment}/sections/01_data_pipeline/files`);
+      const list = await apiRequest<ServerFile[]>(`/experiments/${experiment}/sections/${section}/files`);
       setFiles(list.map(toFile));
       setError(null);
     } catch (e) {
@@ -66,7 +66,7 @@ export function usePipelineFiles(experiment: string) {
     } finally {
       setLoading(false);
     }
-  }, [experiment]);
+  }, [experiment, section]);
 
   useEffect(() => {
     if (server === "ready") void refresh();

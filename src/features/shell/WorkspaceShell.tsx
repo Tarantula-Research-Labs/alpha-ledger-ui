@@ -6,7 +6,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import type { SectionMeta } from "@/core/sections";
 import { identClass } from "@/core/ui";
 import { LedgerMark } from "@/core/ui/LedgerMark";
-import { BackIcon, DashboardIcon, MenuIcon, SectionIcon, StatusIcon, ToolsIcon } from "@/core/ui/icons";
+import { BackIcon, DashboardIcon, DriveIcon, MenuIcon, SectionIcon, StatusIcon, ToolsIcon } from "@/core/ui/icons";
 import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
 import { sectionStates, useMarks } from "@/data/marks";
@@ -98,6 +98,12 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
               <Link href={`${base}/tools`} className={w.item} aria-current={onTools ? "page" : undefined}>
                 <ToolsIcon />
                 <span className={w.itemText}>Tools</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/drive" className={w.item}>
+                <DriveIcon />
+                <span className={w.itemText}>Drive</span>
               </Link>
             </li>
           </ul>

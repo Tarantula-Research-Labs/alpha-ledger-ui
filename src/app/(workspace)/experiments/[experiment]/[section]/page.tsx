@@ -22,10 +22,10 @@ export default async function SectionPage({ params }: Props) {
 
   return (
     <>
-      <SectionHeader experiment={experiment} section={meta} sections={SECTION_META} />
-      {def.active && <SectionMarks experiment={experiment} section={def.folder} />}
+      {!def.ownsHeader && <SectionHeader experiment={experiment} section={meta} sections={SECTION_META} />}
+      {def.active && !def.ownsHeader && <SectionMarks experiment={experiment} section={def.folder} />}
       <Suspense>
-        <Panel experiment={experiment} />
+        <Panel experiment={experiment} section={meta} sections={SECTION_META} />
       </Suspense>
     </>
   );

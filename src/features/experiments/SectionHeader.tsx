@@ -1,8 +1,19 @@
+import type { ReactNode } from "react";
 import type { SectionMeta } from "@/core/sections";
 import { PageHeader } from "@/core/ui";
 
 // Top of every section page: the section's name and job, and links to its neighbours.
-export function SectionHeader({ experiment, section, sections }: { experiment: string; section: SectionMeta; sections: SectionMeta[] }) {
+export function SectionHeader({
+  experiment,
+  section,
+  sections,
+  actions,
+}: {
+  experiment: string;
+  section: SectionMeta;
+  sections: SectionMeta[];
+  actions?: ReactNode;
+}) {
   const i = sections.findIndex((s) => s.folder === section.folder);
   const prev = sections[i - 1];
   const next = sections[i + 1];
@@ -23,6 +34,7 @@ export function SectionHeader({ experiment, section, sections }: { experiment: s
       }
       sub={section.blurb}
       links={links}
+      actions={actions}
     />
   );
 }

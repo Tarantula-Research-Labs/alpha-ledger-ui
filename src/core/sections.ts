@@ -14,8 +14,13 @@ export interface SectionMeta {
 
 export interface SectionPanelProps {
   experiment: string;
+  /** This section and the full list, for panels that draw their own header (see ownsHeader). */
+  section?: SectionMeta;
+  sections?: SectionMeta[];
 }
 
 export interface SectionDefinition extends SectionMeta {
   Panel: ComponentType<SectionPanelProps>;
+  /** true = the panel draws the section header and drafts itself (e.g. to hide them in a dashboard view). */
+  ownsHeader?: boolean;
 }

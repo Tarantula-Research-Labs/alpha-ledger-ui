@@ -10,4 +10,5 @@ export const section: SectionDefinition = {
   icon: "bars",
   blurb: "IC checks, rule-based momentum, Ridge and a decision tree, run in MLflow on your laptop and pushed here when done.",
   Panel: BaselineResearchPanel,
+  ownsHeader: true,
 };

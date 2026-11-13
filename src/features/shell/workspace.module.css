@@ -230,6 +230,10 @@
   max-width: 1280px;
   padding: 28px var(--gutter) 64px;
 }
+/* Dashboards (e.g. 05 Results) use the full width of the screen. */
+.main:has([data-wide-page]) {
+  max-width: none;
+}
 
 .scrim {
   display: none;

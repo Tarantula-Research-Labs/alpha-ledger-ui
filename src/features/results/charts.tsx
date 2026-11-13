@@ -99,9 +99,21 @@ export function EquityChart({
       {series.map((s) => (
         <polyline key={s.name} points={line(s.values, Y)} fill="none" stroke={s.color} strokeWidth={s.dashed ? 1.3 : 2} strokeDasharray={s.dashed ? "4 3" : undefined} />
       ))}
-      {drawdowns.map((s) => (
-        <polyline key={s.name} points={line(s.values, Yd)} fill="none" stroke={s.color} strokeWidth={1.2} strokeDasharray={s.dashed ? "4 3" : undefined} />
-      ))}
+      <line className={c.axis} x1={L} x2={w - R} y1={top + 2} y2={top + 2} />
+      <text x={L + 4} y={top + 16} style={{ fill: "var(--red)" }}>
+        Drawdown
+      </text>
+      <line className={c.grid} x1={L} x2={w - R} y1={Yd(0)} y2={Yd(0)} />
+      {drawdowns.map((s, k) =>
+        k === 0 ? (
+          <g key={s.name}>
+            <polygon points={`${X(0).toFixed(1)},${Yd(0).toFixed(1)} ${line(s.values, Yd)} ${X(n - 1).toFixed(1)},${Yd(0).toFixed(1)}`} fill="var(--red)" fillOpacity={0.18} stroke="none" />
+            <polyline points={line(s.values, Yd)} fill="none" stroke="var(--red)" strokeWidth={1.3} />
+          </g>
+        ) : (
+          <polyline key={s.name} points={line(s.values, Yd)} fill="none" stroke="var(--muted)" strokeWidth={1.1} strokeDasharray="4 3" />
+        ),
+      )}
       {dates.map((d, i) =>
         i % step === 0 ? (
           <rect key={d} x={X(i) - ((w - L) / n) * step * 0.5} y={0} width={((w - L) / n) * step} height={height} fill="transparent">

@@ -6,7 +6,7 @@ import { useState, type ReactNode } from "react";
 import { Button, EmptyState, Panel } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
 import { BoxCI, CIChart, EquityChart, GroupBars, Heatmap, Legend, NotComputed, PairBars, Scatter, f2, f3, pct } from "./charts";
-import { curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult } from "./data";
+import { curves, decisionMetrics, jointProbabilities, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
@@ -16,6 +16,7 @@ type View = "holdout" | "settings" | "choice" | "insample" | "findings" | "about
 
 const SERIES = ["var(--accent)", "var(--amber)", "var(--green)", "var(--violet)", "#e8793a"];
 const STRAT = "var(--accent)";
+const sg = (x: number) => (isNum(x) ? `${x >= 0 ? "+" : "−"}${Math.abs(x).toFixed(2)}` : "–");
 const BENCH = "var(--muted)";
 
 function Source({ children }: { children: ReactNode }) {
@@ -45,43 +46,58 @@ function verdict(a: number | null, b: number | null, better: Better) {
   return (better === "higher" ? a >= b : a <= b) ? c.good : c.bad;
 }
 
-/** Strategy vs buy-and-hold metrics of one run, as a table. */
+/** Strategy vs buy-and-hold metrics of one run, as a table.
+ *  Colour = sign (green positive, red negative) for metrics where the sign matters.
+ *  A green ▲ = better than buy-and-hold; no arrow = worse or no benchmark. */
 function QuantTable({ run, label, mode, benchmark }: { run: MlflowRun; label: string; mode: Mode; benchmark: string }) {
-  const rows: [string, number | null, number | null, (x: number | null) => string, Better][] = [
-    ["PnL", metric(run, "pnl", mode), metric(run, "bh_pnl"), pct, "higher"],
-    ["CAGR", metric(run, "cagr", mode), metric(run, "bh_cagr"), pct, "higher"],
-    ["Sharpe", metric(run, "sharpe", mode), metric(run, "bh_sharpe"), f2, "higher"],
-    ["Sortino", metric(run, "sortino"), null, f2, null],
-    ["Calmar", metric(run, "calmar"), null, f2, null],
-    ["Max drawdown", metric(run, "max_drawdown"), metric(run, "bh_max_drawdown"), pct, "higher"],
-    ["Volatility", metric(run, "volatility"), metric(run, "bh_volatility"), pct, "lower"],
-    ["Drawdown duration", metric(run, "drawdown_duration_days"), null, (x) => (isNum(x) ? `${x.toFixed(0)} days` : "–"), null],
-    ["Trades", metric(run, "n_trades"), null, (x) => (isNum(x) ? x.toFixed(0) : "–"), null],
-    ["Exposure", metric(run, "exposure"), 1, (x) => pct(x, 0), null],
-    ["Hit rate", metric(run, "hit_rate"), null, (x) => pct(x, 0), null],
-    ["EV per trade", metric(run, "ev_per_trade"), null, (x) => pct(x, 2), null],
-    ["Avg win", metric(run, "avg_win"), null, pct, null],
-    ["Avg loss", metric(run, "avg_loss"), null, pct, null],
+  // [name, value, benchmark value, format, which way is better, does the sign carry meaning]
+  const rows: [string, number | null, number | null, (x: number | null) => string, Better, boolean][] = [
+    ["PnL", metric(run, "pnl", mode), metric(run, "bh_pnl"), pct, "higher", true],
+    ["CAGR", metric(run, "cagr", mode), metric(run, "bh_cagr"), pct, "higher", true],
+    ["Sharpe", metric(run, "sharpe", mode), metric(run, "bh_sharpe"), f2, "higher", true],
+    ["Sortino", metric(run, "sortino"), null, f2, null, true],
+    ["Calmar", metric(run, "calmar"), null, f2, null, true],
+    ["Max drawdown", metric(run, "max_drawdown"), metric(run, "bh_max_drawdown"), pct, "higher", false],
+    ["Volatility", metric(run, "volatility"), metric(run, "bh_volatility"), pct, "lower", false],
+    ["Drawdown duration", metric(run, "drawdown_duration_days"), null, (x) => (isNum(x) ? `${x.toFixed(0)} days` : "–"), null, false],
+    ["Trades", metric(run, "n_trades"), null, (x) => (isNum(x) ? x.toFixed(0) : "–"), null, false],
+    ["Exposure", metric(run, "exposure"), 1, (x) => pct(x, 0), null, false],
+    ["Hit rate", metric(run, "hit_rate"), null, (x) => pct(x, 0), null, false],
+    ["EV per trade", metric(run, "ev_per_trade"), null, (x) => pct(x, 2), null, true],
+    ["Avg win", metric(run, "avg_win"), null, pct, null, true],
+    ["Avg loss", metric(run, "avg_loss"), null, pct, null, true],
   ];
+  const beats = (a: number | null, b: number | null, better: Better) =>
+    !!better && isNum(a) && isNum(b) && (better === "higher" ? a > b : a < b);
   return (
-    <table className={c.table}>
-      <thead>
-        <tr>
-          <th scope="col">Metric</th>
-          <th scope="col">{label}</th>
-          <th scope="col">{benchmark}</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map(([name, a, b, f, better]) => (
-          <tr key={name}>
-            <td>{name}</td>
-            <td className={verdict(a, b, better)}>{f(a)}</td>
-            <td>{b === null ? "–" : f(b)}</td>
+    <>
+      <table className={c.table}>
+        <thead>
+          <tr>
+            <th scope="col">Metric</th>
+            <th scope="col">{label}</th>
+            <th scope="col">{benchmark}</th>
           </tr>
-        ))}
-      </tbody>
-    </table>
+        </thead>
+        <tbody>
+          {rows.map(([name, a, b, f, better, signed]) => (
+            <tr key={name}>
+              <td>{name}</td>
+              <td className={signed && isNum(a) ? (a > 0 ? c.good : a < 0 ? c.bad : "") : ""}>
+                {f(a)}
+                <span className={c.arrow} aria-label={beats(a, b, better) ? "better than buy-and-hold" : undefined}>
+                  {beats(a, b, better) ? "▲" : ""}
+                </span>
+              </td>
+              <td>{b === null ? "–" : f(b)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className={c.tableNote}>
+        Green / red = positive / negative. <span className={c.good}>▲</span> = better than {benchmark.toLowerCase()} (for drawdown: smaller; for volatility: lower).
+      </p>
+    </>
   );
 }
 
@@ -130,7 +146,7 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
             ]}
           />
         </Card>
-        <Card title="Quant metrics" sub="Green / red = better / worse than buy-and-hold." source={`${h.run.name} metrics`}>
+        <Card title="Quant metrics" source={`${h.run.name} metrics`}>
           <QuantTable run={h.run} label={label} mode={mode} benchmark="Buy-and-hold" />
         </Card>
       </div>
@@ -247,6 +263,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 <th scope="col">Precision (all decisions)</th>
                 <th scope="col">Precision per fold [95% CI]</th>
                 <th scope="col">Lower bound</th>
+                <th scope="col">IC (all decisions)</th>
+                <th scope="col">Mean fold IC [95% CI]</th>
                 <th scope="col">Mean fold PnL [95% CI]</th>
                 <th scope="col">Sharpe</th>
                 <th scope="col">Max DD</th>
@@ -258,6 +276,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
               {s.map((r) => {
                 const p = tCI(r.folds.map((f) => f.precision));
                 const q = tCI(r.folds.map((f) => f.pnl));
+                const fic = tCI(r.folds.map((f) => f.ic));
+                const ic = r.daily ? decisionMetrics(r.daily).ic : NaN;
                 return (
                   <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
                     <td>
@@ -268,6 +288,10 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                       {f3(p.m)} [{f3(p.lo)}, {f3(p.hi)}]
                     </td>
                     <td>{f3(p.lo)}</td>
+                    <td className={isNum(ic) ? (ic > 0 ? c.good : c.bad) : ""}>{sg(ic)}</td>
+                    <td className={c.muted}>
+                      {sg(fic.m)} [{sg(fic.lo)}, {sg(fic.hi)}]
+                    </td>
                     <td>
                       {pct(q.m)} [{pct(q.lo)}, {pct(q.hi)}]
                     </td>
@@ -282,6 +306,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 <tr>
                   <td className={c.muted}>Buy-and-hold</td>
                   <td>base rate {f3(base)}</td>
+                  <td />
+                  <td />
                   <td />
                   <td />
                   <td />
@@ -323,11 +349,60 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
       <Card title="PnL heatmap" sub="Setting × fold. A row that stays green is stable." source={`${cfg.artifacts.quantPerFold} → pnl`}>
         <Heatmap columns={quarters} rows={s.map((r) => ({ label: r.label, values: r.folds.map((f) => f.pnl), bold: r.chosen }))} />
       </Card>
-      <div className={c.two}>
-        <NotComputed title="Joint probabilities with Wilson CIs">P(precision &gt; base rate), P(both good), P(Sharpe good | precision good).</NotComputed>
-        <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>
-      </div>
+      <JointCard settings={s} />
+      <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>
     </>
+  );
+}
+
+/** Joint probabilities per setting, each with a 95% Wilson CI. */
+function JointCard({ settings }: { settings: SettingResult[] }) {
+  const rows = settings.map((r) => ({ r, j: jointProbabilities(r.folds) }));
+  const best = rows.reduce<(typeof rows)[number] | null>((b, x) => (isNum(x.j.bothGood.lo) && (!b || x.j.bothGood.lo > b.j.bothGood.lo) ? x : b), null);
+  const cell = (w: { p: number; lo: number; hi: number; k: number; n: number }) => (
+    <td title={`${w.k} of ${w.n} folds`}>
+      {pct(w.p, 0)} <span className={c.muted}>[{pct(w.lo, 0)}, {pct(w.hi, 0)}]</span>
+    </td>
+  );
+  return (
+    <Card
+      title="Joint probabilities"
+      sub="Across folds: precision good = above that fold's base rate; Sharpe good = net Sharpe above 0. 95% Wilson CIs. Folds missing a value (e.g. no long calls) are left out."
+      source="fold tables: precision, base_rate, sharpe"
+    >
+      <div className={c.scroll}>
+        <table className={c.table}>
+          <thead>
+            <tr>
+              <th scope="col">Setting</th>
+              <th scope="col">P(precision good)</th>
+              <th scope="col">P(Sharpe good)</th>
+              <th scope="col">P(both good)</th>
+              <th scope="col">P(Sharpe good | precision good)</th>
+              <th scope="col">Folds used</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(({ r, j }) => (
+              <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
+                <td>
+                  {r.label} {r.chosen && <span className={c.pill}>chosen</span>}{" "}
+                  {best?.r === r && <span className={c.pillGood}>highest P(both) lower bound</span>}
+                </td>
+                {cell(j.precisionGood)}
+                {cell(j.sharpeGood)}
+                {cell(j.bothGood)}
+                {cell(j.sharpeGivenPrecision)}
+                <td>
+                  {j.folds}
+                  {j.skipped ? <span className={c.muted}> ({j.skipped} left out)</span> : null}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
@@ -407,7 +482,7 @@ function InSampleView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
             ]}
           />
         </Card>
-        <Card title="Quant metrics" sub="Green / red = better / worse than buy-and-hold." source={`${ch.run.name} metrics`}>
+        <Card title="Quant metrics" source={`${ch.run.name} metrics`}>
           <QuantTable run={ch.run} label={ch.label} mode={mode} benchmark="Buy-and-hold" />
         </Card>
       </div>

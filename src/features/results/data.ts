@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/core/api";
 import { useLedger } from "@/data/LedgerProvider";
-import { drawdown, equityFromLog, isNum, periodReturn, spearman } from "./stats";
+import { drawdown, equityFromLog, isNum, periodReturn, spearman, wilson } from "./stats";
 import type { MlflowExperiment, MlflowRun, PathConfig, Row } from "./types";
 
 const num = (x: unknown): number | null => (isNum(x) ? x : null);
@@ -152,6 +152,25 @@ export interface SettingResult {
   label: string; // "22d"
   chosen: boolean;
   folds: Fold[];
+  daily: Daily | null;
+}
+
+/** Joint view across folds: precision good = above that fold's base rate; Sharpe good = net Sharpe > 0.
+ *  Folds missing any of the three values (e.g. no long calls) are left out. */
+export function jointProbabilities(folds: Fold[]) {
+  const used = folds.filter((f) => isNum(f.precision) && isNum(f.baseRate) && isNum(f.sharpe));
+  const pg = used.map((f) => (f.precision as number) > (f.baseRate as number));
+  const sg = used.map((f) => (f.sharpe as number) > 0);
+  const both = pg.filter((x, i) => x && sg[i]).length;
+  const nPrec = pg.filter(Boolean).length;
+  return {
+    folds: used.length,
+    skipped: folds.length - used.length,
+    precisionGood: wilson(nPrec, used.length),
+    sharpeGood: wilson(sg.filter(Boolean).length, used.length),
+    bothGood: wilson(both, used.length),
+    sharpeGivenPrecision: wilson(both, nPrec),
+  };
 }
 
 export interface PathResults {
@@ -191,14 +210,23 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
 
       const settings = await Promise.all(
         inSample.map(async (run) => {
-          const [ml, quant] = await Promise.all([art(run, cfg.artifacts.mlPerFold), art(run, cfg.artifacts.quantPerFold)]);
+          const [ml, quant, daily] = await Promise.all([
+            art(run, cfg.artifacts.mlPerFold),
+            art(run, cfg.artifacts.quantPerFold),
+            art(run, cfg.artifacts.daily),
+          ]);
           const value = run.params[cfg.setting.param];
-          return { run, value, label: cfg.setting.label(value), chosen: run === chosenRun, folds: joinFolds(ml, quant) };
+          return {
+            run,
+            value,
+            label: cfg.setting.label(value),
+            chosen: run === chosenRun,
+            folds: joinFolds(ml, quant),
+            daily: daily.length ? toDaily(daily) : null,
+          };
         }),
       );
-      const [chosenDailyRows, chosenYearly] = chosenRun
-        ? await Promise.all([art(chosenRun, cfg.artifacts.daily), art(chosenRun, cfg.artifacts.yearly)])
-        : [[], []];
+      const chosenYearly = chosenRun ? await art(chosenRun, cfg.artifacts.yearly) : [];
       let holdout: PathResults["holdout"] = null;
       if (holdoutRun) {
         const [ml, quant, daily] = await Promise.all([
@@ -212,7 +240,7 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
         experiment: exps.find((e) => e.name === cfg.source?.experiment) ?? null,
         settings,
         chosen: settings.find((s) => s.chosen) ?? null,
-        chosenDaily: chosenDailyRows.length ? toDaily(chosenDailyRows) : null,
+        chosenDaily: settings.find((s) => s.chosen)?.daily ?? null,
         chosenYearly,
         holdout,
       });

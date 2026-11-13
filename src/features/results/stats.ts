@@ -78,6 +78,17 @@ function ranks(a: number[]): number[] {
 
 export const spearman = (a: number[], b: number[]) => corr(ranks(a), ranks(b));
 
+/** Share k/n with a 95% Wilson interval (behaves well for small n and shares near 0 or 1). */
+export function wilson(k: number, n: number): { p: number; lo: number; hi: number; k: number; n: number } {
+  if (!n) return { p: NaN, lo: NaN, hi: NaN, k, n };
+  const z = 1.959964;
+  const p = k / n;
+  const d = 1 + (z * z) / n;
+  const centre = (p + (z * z) / (2 * n)) / d;
+  const half = (z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n))) / d;
+  return { p, lo: centre - half, hi: centre + half, k, n };
+}
+
 /** Equity curve (starting at 1) from daily log returns. */
 export function equityFromLog(logRets: number[]): number[] {
   let s = 0;

@@ -467,3 +467,64 @@ export function walkForwardSnippet(): string {
         return pd.DataFrame(rows)
 `;
 }
+
+/** Imports for the MLflow zip push and retrieve steps. */
+export function mlflowZipImportsSnippet(): string {
+  return `import os, pathlib, zipfile, requests
+from dotenv import load_dotenv
+`;
+}
+
+/** Zip mlflow.db + the mlruns folder and push the zip to a section (one new version per push). */
+export function pushMlflowZipSnippet(experiment: string, section: string, zipName: string): string {
+  return `load_dotenv()
+LEDGER_API = "${NOTEBOOK_API_URL}"
+HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
+${filesUrl(experiment, section)}
+
+MLFLOW_DIR = pathlib.Path(".")  # change: the folder that holds mlflow.db and mlruns
+ZIP_NAME = "${zipName}"  # change: one name per path (same name = new version)
+NOTE = ""  # optional: what this push contains
+
+zip_path = MLFLOW_DIR / ZIP_NAME
+with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as z:
+    z.write(MLFLOW_DIR / "mlflow.db", "mlflow.db")
+    for f in (MLFLOW_DIR / "mlruns").rglob("*"):
+        if f.is_file():
+            z.write(f, f.relative_to(MLFLOW_DIR).as_posix())
+
+r = requests.post(f"{FILES_URL}/{ZIP_NAME}", headers=HEADERS, json={"rows": None, "columns": [], "note": NOTE})
+r.raise_for_status()
+slot = r.json()
+with open(zip_path, "rb") as f:
+    requests.put(slot["upload_url"], data=f, headers=slot["upload_headers"]).raise_for_status()
+requests.post(f"{FILES_URL}/{ZIP_NAME}/{slot['version']}/complete", headers=HEADERS).raise_for_status()
+print(f"Saved {slot['saved_as']} (v{slot['version']}), {zip_path.stat().st_size / 1e6:.1f} MB")
+`;
+}
+
+/** Download a pushed MLflow zip and unzip it, so \`mlflow ui\` can open the runs again. */
+export function retrieveMlflowZipSnippet(experiment: string, section: string, zipName: string): string {
+  return `load_dotenv()
+LEDGER_API = "${NOTEBOOK_API_URL}"
+HEADERS = {"X-Ledger-Key": os.environ["LEDGER_API_KEY"]}
+${filesUrl(experiment, section)}
+
+ZIP_NAME = "${zipName}"  # change: the name it was pushed with
+VERSION = "latest"  # change: a version number, or "latest"
+OUT_DIR = pathlib.Path("mlflow_restored")  # change: where to unzip
+
+r = requests.get(f"{FILES_URL}/{ZIP_NAME}/{VERSION}", headers=HEADERS)
+r.raise_for_status()
+info = r.json()
+data = requests.get(info["download_url"])
+data.raise_for_status()
+
+OUT_DIR.mkdir(parents=True, exist_ok=True)
+(OUT_DIR / info["saved_as"]).write_bytes(data.content)
+with zipfile.ZipFile(OUT_DIR / info["saved_as"]) as z:
+    z.extractall(OUT_DIR)
+print(f"Unzipped {info['saved_as']} (v{info['version']}) into {OUT_DIR}")
+print(f'Open it with:  mlflow ui --backend-store-uri sqlite:///{OUT_DIR}/mlflow.db')
+`;
+}

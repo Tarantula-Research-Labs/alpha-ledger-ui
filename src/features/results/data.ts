@@ -268,17 +268,21 @@ export async function newestPush(experiment: string, section: string, zip: strin
 }
 
 /** Loads everything one path's dashboard shows: asks which version is newest, then loads that version
- *  once (from memory, the browser's cache, or the server, in that order). */
+ *  once (from memory, the browser's cache, or the server, in that order).
+ *  `refresh()` skips memory and the browser's cache, fetches everything from the server again and
+ *  stores the new replies in both. */
 export function usePathResults(experiment: string, section: string, cfg: PathConfig, snapshot?: Snapshot) {
   const { server } = useLedger();
   const [data, setData] = useState<PathResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh = false) => {
     const source = cfg.source;
     if (!source) return;
-    setLoading(true);
+    if (fresh) setRefreshing(true);
+    else setLoading(true);
     setError(null);
     try {
       if (snapshot) {
@@ -287,10 +291,11 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
       }
       const { version, pushedAt } = await newestPush(experiment, section, source.zip);
       const key = [experiment, section, source.zip, source.experiment, version, pushedAt].join("|");
+      if (fresh) memory.delete(key);
       let pending = memory.get(key);
       if (!pending) {
         const base = `/experiments/${experiment}/sections/${section}/mlflow/${encodeURIComponent(source.zip)}/${version}`;
-        const get: Getter = (path) => apiRequest(`${base}${path}?pushed=${encodeURIComponent(pushedAt)}`, { cache: "default" });
+        const get: Getter = (path) => apiRequest(`${base}${path}?pushed=${encodeURIComponent(pushedAt)}`, { cache: fresh ? "reload" : "default" });
         pending = fetchPathResults(cfg, source, get);
         memory.set(key, pending);
         pending.catch(() => memory.delete(key)); // a failed load is tried again next time
@@ -300,6 +305,7 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
       setError(e instanceof ApiError ? e.message : "The results couldn't be loaded.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, [experiment, section, cfg, snapshot]);
 
@@ -308,5 +314,5 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
     if (cfg.source && (snapshot || server === "ready")) void load();
   }, [server, cfg.source, snapshot, load]);
 
-  return { data, loading, error, reload: load };
+  return { data, loading, error, refreshing, reload: () => load(), refresh: () => load(true) };
 }

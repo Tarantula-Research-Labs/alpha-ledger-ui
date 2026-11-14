@@ -15,6 +15,7 @@
 .seg button[aria-checked="true"] { background: var(--panel-hi); color: var(--text); }
 
 .views { display: flex; flex-wrap: wrap; gap: 6px; padding: 12px 18px; border-bottom: 1px solid var(--line); }
+.viewsEnd { margin-left: auto; }
 .viewBtn {
   padding: 5px 12px; border: 1px solid var(--line); border-radius: 999px; background: none;
   color: var(--muted); font: inherit; font-size: var(--fs-xs); cursor: pointer;

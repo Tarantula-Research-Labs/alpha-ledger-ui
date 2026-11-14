@@ -774,7 +774,7 @@ const VIEWS: { id: View; label: (chosen: string) => string }[] = [
 ];
 
 function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: string; section: string; cfg: PathConfig; mode: Mode; snapshot?: Snapshot }) {
-  const { data, loading, error, reload } = usePathResults(experiment, section, cfg, snapshot);
+  const { data, loading, error, refreshing, reload, refresh } = usePathResults(experiment, section, cfg, snapshot);
   const [view, setView] = useState<View>("holdout");
   if (!cfg.source) return <EmptyState title={`${cfg.title} hasn't been run yet.`} />;
   if (error)
@@ -783,7 +783,7 @@ function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: st
         <p>{error}</p>
       </EmptyState>
     );
-  if (loading || !data) return <GearSpinner label="Loading results from MLflow…" />;
+  if (!data) return <GearSpinner label="Loading results from MLflow…" />;
   return (
     <>
       <div className={c.views} role="tablist" aria-label="Result sections">
@@ -792,6 +792,13 @@ function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: st
             {v.label(data.chosen?.label ?? "Chosen")}
           </button>
         ))}
+        {!snapshot && (
+          <span className={c.viewsEnd}>
+            <Button onClick={() => void refresh()} disabled={refreshing} title="Fetch this path's results from the server again and update the browser's copy">
+              {refreshing ? "Refreshing…" : "↻ Refresh"}
+            </Button>
+          </span>
+        )}
       </div>
       <div className={c.body}>
         {view === "holdout" && <HoldoutView cfg={cfg} data={data} mode={mode} />}

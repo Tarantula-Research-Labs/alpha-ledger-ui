@@ -9,7 +9,7 @@ import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, N
 import { ShareButton } from "@/features/share/ShareButton";
 import { conditionalProbabilities, curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
 import { corr, isNum, tCI } from "./stats";
-import type { MlflowRun, PathConfig } from "./types";
+import type { ChoiceTable, MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
 
 type Mode = "net" | "gross";
@@ -489,21 +489,108 @@ function ChoiceView({ cfg, data }: { cfg: PathConfig; data: PathResults }) {
         <b>Reason (tag selection_reason):</b> {ch.run.tags.selection_reason ?? "Not recorded."}
       </div>
       <Source>{ch.run.name} tags: chosen, frozen_on, settings_tried, selection_reason</Source>
-      {CHOICE_PARTS.map((part, i) => (
-        <section key={part.title} className={c.choicePart}>
+      {CHOICE_PARTS.map((part, i) => {
+        const content = cfg.notes.choice?.parts[i];
+        return (
+          <section key={part.title} className={c.choicePart}>
+            <h3 className={c.choicePartTitle}>
+              <span className={c.choicePartNum}>{i + 1}</span>
+              {part.title}
+            </h3>
+            <p className={c.cardSub}>{part.sub}</p>
+            {content && cfg.notes.choice ? (
+              <>
+                <ChoiceTableView table={content} pick={cfg.notes.choice.pick} />
+                <dl className={c.verdict}>
+                  <div>
+                    <dt>Best candidates</dt>
+                    <dd>{content.candidates}</dd>
+                  </div>
+                  <div>
+                    <dt>Provisional pick</dt>
+                    <dd>
+                      <b>{content.pick}</b>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>Decision</dt>
+                    <dd>{content.decision}</dd>
+                  </div>
+                </dl>
+              </>
+            ) : (
+              <div className={c.choicePartEmpty}>Coming next.</div>
+            )}
+          </section>
+        );
+      })}
+      {cfg.notes.choice && (
+        <section className={c.choicePart}>
           <h3 className={c.choicePartTitle}>
-            <span className={c.choicePartNum}>{i + 1}</span>
-            {part.title}
+            <span className={`${c.choicePartNum} ${c.choicePartNumFinal}`}>✓</span>
+            Final selection
           </h3>
-          <p className={c.cardSub}>{part.sub}</p>
-          <div className={c.choicePartEmpty}>Coming next.</div>
+          <p className={c.cardSub}>The three decisions side by side.</p>
+          <ChoiceTableView table={cfg.notes.choice.final} pick={cfg.notes.choice.pick} final />
+          <dl className={c.verdict}>
+            <div>
+              <dt>Why {cfg.notes.choice.pick}</dt>
+              <dd>{cfg.notes.choice.final.why}</dd>
+            </div>
+            <div>
+              <dt>Caveats</dt>
+              <dd>{cfg.notes.choice.final.caveats}</dd>
+            </div>
+          </dl>
+          <Source>All numbers are in sample, from {cfg.notes.choice.source}.</Source>
         </section>
-      ))}
+      )}
     </>
   );
 }
 
-/** The three steps of the choice. Content is added part by part. */
+/** One table of The choice. A tick marks cells (in tickCols) won by the chosen setting. */
+function ChoiceTableView({ table, pick, final }: { table: ChoiceTable; pick: string; final?: boolean }) {
+  const last = table.columns.length - 1;
+  return (
+    <div className={c.scroll}>
+      <table className={`${c.table} ${c.choiceTable}`}>
+        <thead>
+          <tr>
+            {table.columns.map((col) => (
+              <th key={col}>{col}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row, r) => (
+            <tr key={r} className={final && r === table.rows.length - 1 ? c.chosenRow : undefined}>
+              {row.map((cell, j) => {
+                const ticked = table.tickCols.includes(j) && cell.startsWith(pick);
+                const strength = final && j === last ? cell.match(/^(Weak|Moderate|Strong)(?::\s*(.*))?$/) : null;
+                return (
+                  <td key={j} className={j === 0 && !final ? c.stepCell : undefined}>
+                    {ticked && <span className={c.tick}>✓</span>}
+                    {strength ? (
+                      <>
+                        <span className={strength[1] === "Weak" ? c.pillWeak : c.pillGood}>{strength[1]}</span>
+                        {strength[2] && <span className={c.muted}> {strength[2]}</span>}
+                      </>
+                    ) : (
+                      <span className={ticked ? c.strongCell : undefined}>{cell}</span>
+                    )}
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/** The three steps of the choice. Each path's content comes from notes.choice. */
 const CHOICE_PARTS = [
   { title: "Machine learning metrics: analysis and decision", sub: "What the prediction metrics say about each setting, and the decision they lead to." },
   { title: "Quant metrics: analysis and decision", sub: "What the trading metrics say about each setting, and the decision they lead to." },

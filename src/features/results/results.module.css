@@ -106,3 +106,17 @@
 .choicePartTitle { display: flex; align-items: center; gap: 10px; margin: 0 0 2px; font-size: var(--fs-md); font-weight: 600; color: var(--text); }
 .choicePartNum { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--chip-bg); font-size: 11px; color: var(--muted); }
 .choicePartEmpty { padding: 18px; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--faint); font-size: var(--fs-xs); text-align: center; }
+.choicePart { display: grid; gap: 10px; }
+.choicePart .cardSub { margin: 0; }
+.choicePartNumFinal { background: color-mix(in srgb, var(--green) 18%, transparent); color: var(--green); }
+.choiceTable td, .choiceTable th { text-align: left; white-space: normal; vertical-align: top; }
+.choiceTable td:nth-child(3), .choiceTable td:nth-child(4) { white-space: nowrap; }
+.stepCell { color: var(--faint); font-family: var(--font-mono); font-size: 11.5px; }
+.tick { display: inline-block; width: 1.2em; color: var(--green); font-weight: 700; }
+.pillWeak { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; color: var(--amber, #c98a1b); background: color-mix(in srgb, var(--amber, #c98a1b) 14%, transparent); }
+.verdict { display: grid; gap: 6px; margin: 0; padding: 10px 12px; border-radius: 8px; background: var(--note-bg); font-size: var(--fs-sm); }
+.verdict div { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; }
+.verdict dt { color: var(--muted); }
+.verdict dd { margin: 0; color: var(--text); }
+.verdict b { color: var(--green); }
+@media (max-width: 700px) { .verdict div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }

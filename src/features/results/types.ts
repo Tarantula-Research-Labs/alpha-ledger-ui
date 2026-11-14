@@ -24,7 +24,29 @@ export interface PathConfig {
     tests: { name: string; status: "run" | "not computed"; result: string }[];
     findings: string[];
     findingsSource: string;
+    /** How the setting was chosen, in three parts plus a final table. Optional: shown as "Coming next." when missing. */
+    choice?: ChoiceNotes;
   };
+}
+
+/** A table in The choice. Cells in `tickCols` that start with `ChoiceNotes.pick` get a tick. */
+export interface ChoiceTable {
+  columns: string[];
+  rows: string[][];
+  tickCols: number[];
+}
+
+export interface ChoicePart extends ChoiceTable {
+  candidates: string;
+  pick: string;
+  decision: string;
+}
+
+export interface ChoiceNotes {
+  pick: string;
+  parts: [ChoicePart, ChoicePart, ChoicePart];
+  final: ChoiceTable & { why: string; caveats: string };
+  source: string;
 }
 
 export interface MlflowRun {

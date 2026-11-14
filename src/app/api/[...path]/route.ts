@@ -25,7 +25,11 @@ async function forward(req: NextRequest, { params }: { params: Promise<{ path: s
       body: req.method === "POST" ? await req.text() : undefined,
       cache: "no-store",
     });
-    return new NextResponse(await res.text(), { status: res.status, headers: { "content-type": "application/json" } });
+    // A pushed MLflow version never changes: let the browser keep it (private: only this signed-in browser).
+    const exactVersion = req.method === "GET" && /\/mlflow\/[^/]+\/[1-9][0-9]*\//.test(`/${path.join("/")}/`);
+    const headers: Record<string, string> = { "content-type": "application/json" };
+    if (exactVersion && res.ok) headers["cache-control"] = "private, max-age=31536000, immutable";
+    return new NextResponse(await res.text(), { status: res.status, headers });
   } catch {
     return NextResponse.json({ error: { code: "server_unreachable", message: "The server can't be reached." } }, { status: 502 });
   }

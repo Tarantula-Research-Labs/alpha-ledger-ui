@@ -6,7 +6,8 @@ import { useState, type ReactNode } from "react";
 import { Button, EmptyState, Panel } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
 import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, f2, f3, pct } from "./charts";
-import { conditionalProbabilities, curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult } from "./data";
+import { ShareButton } from "@/features/share/ShareButton";
+import { conditionalProbabilities, curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
@@ -668,8 +669,8 @@ const VIEWS: { id: View; label: (chosen: string) => string }[] = [
   { id: "about", label: () => "About this path" },
 ];
 
-function PathBody({ experiment, section, cfg, mode }: { experiment: string; section: string; cfg: PathConfig; mode: Mode }) {
-  const { data, loading, error, reload } = usePathResults(experiment, section, cfg);
+function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: string; section: string; cfg: PathConfig; mode: Mode; snapshot?: Snapshot }) {
+  const { data, loading, error, reload } = usePathResults(experiment, section, cfg, snapshot);
   const [view, setView] = useState<View>("holdout");
   if (!cfg.source) return <EmptyState title={`${cfg.title} hasn't been run yet.`} />;
   if (error)
@@ -700,7 +701,8 @@ function PathBody({ experiment, section, cfg, mode }: { experiment: string; sect
   );
 }
 
-export function ResultsView({ experiment, section, paths }: { experiment: string; section: string; paths: PathConfig[] }) {
+/** The results dashboard. With `snapshot` (a share link) it shows one frozen path, read-only, with no Share button. */
+export function ResultsView({ experiment, section, paths, snapshot }: { experiment: string; section: string; paths: PathConfig[]; snapshot?: Snapshot }) {
   const [pathId, setPathId] = useState(paths.find((p) => p.source)?.id ?? paths[0]?.id);
   const [mode, setMode] = useState<Mode>("net");
   const cfg = paths.find((p) => p.id === pathId) ?? paths[0];
@@ -719,16 +721,19 @@ export function ResultsView({ experiment, section, paths }: { experiment: string
         </span>
       }
       actions={
-        <span className={c.seg} role="radiogroup" aria-label="Returns">
-          {(["net", "gross"] as Mode[]).map((m) => (
-            <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}>
-              {m === "net" ? "Net of costs" : "Gross"}
-            </button>
-          ))}
+        <span className={c.headActions}>
+          <span className={c.seg} role="radiogroup" aria-label="Returns">
+            {(["net", "gross"] as Mode[]).map((m) => (
+              <button key={m} type="button" role="radio" aria-checked={mode === m} onClick={() => setMode(m)}>
+                {m === "net" ? "Net of costs" : "Gross"}
+              </button>
+            ))}
+          </span>
+          {!snapshot && cfg.source && <ShareButton experiment={experiment} section={section} path={cfg} />}
         </span>
       }
     >
-      <PathBody key={cfg.id} experiment={experiment} section={section} cfg={cfg} mode={mode} />
+      <PathBody key={cfg.id} experiment={experiment} section={section} cfg={cfg} mode={mode} snapshot={snapshot} />
     </Panel>
   );
 }

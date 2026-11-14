@@ -184,78 +184,129 @@ export interface PathResults {
   holdout: { run: MlflowRun; folds: Fold[]; daily: Daily } | null;
 }
 
-/** Loads everything one path's dashboard shows. Runs first (so the server unzips once), then the tables. */
-export function usePathResults(experiment: string, section: string, cfg: PathConfig) {
+/** Loads everything one path's dashboard shows, from one exact pushed version of its zip.
+ *  An exact version never changes, so the browser may keep these replies (the /api proxy marks them
+ *  "never changes"). `pushed` (the push time) makes a re-push after a delete, which reuses the
+ *  version number, a different address, so a stale copy can never be shown. */
+async function fetchPathResults(cfg: PathConfig, source: { zip: string; experiment: string }, get: Getter): Promise<PathResults> {
+  const runs = await get<MlflowRun[]>(`/experiments/${encodeURIComponent(source.experiment)}/runs`);
+  const exps = await get<MlflowExperiment[]>(`/experiments`);
+  const art = (run: MlflowRun, file: string | undefined) =>
+    file && run.artifacts.some((a) => a.path === file)
+      ? get<unknown>(`/runs/${run.run_id}/artifacts/${encodeURIComponent(file)}`).then(tableRows)
+      : Promise.resolve([] as Row[]);
+
+  const inSample = runs
+    .filter((r) => r.tags.stage === "in_sample" && r.params[cfg.setting.param] !== undefined)
+    .sort((a, b) => Number(a.params[cfg.setting.param]) - Number(b.params[cfg.setting.param]));
+  const holdoutRun = runs.find((r) => r.tags.stage === "holdout") ?? null;
+  const chosenRun = inSample.find((r) => r.tags.chosen === "true") ?? null;
+
+  const settings = await Promise.all(
+    inSample.map(async (run) => {
+      const [ml, quant, daily] = await Promise.all([
+        art(run, cfg.artifacts.mlPerFold),
+        art(run, cfg.artifacts.quantPerFold),
+        art(run, cfg.artifacts.daily),
+      ]);
+      const value = run.params[cfg.setting.param];
+      return {
+        run,
+        value,
+        label: cfg.setting.label(value),
+        chosen: run === chosenRun,
+        folds: joinFolds(ml, quant),
+        daily: daily.length ? toDaily(daily) : null,
+      };
+    }),
+  );
+  const chosenYearly = chosenRun ? await art(chosenRun, cfg.artifacts.yearly) : [];
+  let holdout: PathResults["holdout"] = null;
+  if (holdoutRun) {
+    const [ml, quant, daily] = await Promise.all([
+      art(holdoutRun, cfg.artifacts.mlPerFold),
+      art(holdoutRun, cfg.artifacts.quantPerFold),
+      art(holdoutRun, cfg.artifacts.daily),
+    ]);
+    holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily: toDaily(daily) };
+  }
+  return {
+    experiment: exps.find((e) => e.name === source.experiment) ?? null,
+    settings,
+    chosen: settings.find((s) => s.chosen) ?? null,
+    chosenDaily: settings.find((s) => s.chosen)?.daily ?? null,
+    chosenYearly,
+    holdout,
+  };
+}
+
+/** Reads one address of a path's results, e.g. "/experiments" or "/runs/<id>/artifacts/<file>". */
+type Getter = <T>(path: string) => Promise<T>;
+
+/** A frozen copy of a path's results (a share link): the same addresses, already filled in. */
+export type Snapshot = Record<string, unknown>;
+
+function snapshotGetter(snap: Snapshot): Getter {
+  return async <T,>(path: string) => {
+    const key = decodeURIComponent(path);
+    if (!(key in snap)) throw new ApiError(404, "This part of the report isn't in the shared copy.");
+    return snap[key] as T;
+  };
+}
+
+/** Results already loaded while this page is open: switching tabs or views reuses them. */
+const memory = new Map<string, Promise<PathResults>>();
+
+/** Which version of the zip is the newest complete one. Always asked fresh (tiny reply). */
+export async function newestPush(experiment: string, section: string, zip: string) {
+  const files = await apiRequest<{ file: string; version: number; status: string; created_at: string }[]>(
+    `/experiments/${experiment}/sections/${section}/files`,
+  );
+  const done = files.filter((f) => f.file === zip && f.status === "complete").sort((a, b) => b.version - a.version);
+  if (!done.length) throw new ApiError(404, `${zip} hasn't been pushed to this section yet.`);
+  return { version: done[0].version, pushedAt: done[0].created_at };
+}
+
+/** Loads everything one path's dashboard shows: asks which version is newest, then loads that version
+ *  once (from memory, the browser's cache, or the server, in that order). */
+export function usePathResults(experiment: string, section: string, cfg: PathConfig, snapshot?: Snapshot) {
   const { server } = useLedger();
   const [data, setData] = useState<PathResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!cfg.source) return;
+    const source = cfg.source;
+    if (!source) return;
     setLoading(true);
     setError(null);
     try {
-      const base = `/experiments/${experiment}/sections/${section}/mlflow/${encodeURIComponent(cfg.source.zip)}/latest`;
-      const runs = await apiRequest<MlflowRun[]>(`${base}/experiments/${encodeURIComponent(cfg.source.experiment)}/runs`);
-      const exps = await apiRequest<MlflowExperiment[]>(`${base}/experiments`);
-      const art = (run: MlflowRun, file: string | undefined) =>
-        file && run.artifacts.some((a) => a.path === file)
-          ? apiRequest<unknown>(`${base}/runs/${run.run_id}/artifacts/${encodeURIComponent(file)}`).then(tableRows)
-          : Promise.resolve([] as Row[]);
-
-      const inSample = runs
-        .filter((r) => r.tags.stage === "in_sample" && r.params[cfg.setting.param] !== undefined)
-        .sort((a, b) => Number(a.params[cfg.setting.param]) - Number(b.params[cfg.setting.param]));
-      const holdoutRun = runs.find((r) => r.tags.stage === "holdout") ?? null;
-      const chosenRun = inSample.find((r) => r.tags.chosen === "true") ?? null;
-
-      const settings = await Promise.all(
-        inSample.map(async (run) => {
-          const [ml, quant, daily] = await Promise.all([
-            art(run, cfg.artifacts.mlPerFold),
-            art(run, cfg.artifacts.quantPerFold),
-            art(run, cfg.artifacts.daily),
-          ]);
-          const value = run.params[cfg.setting.param];
-          return {
-            run,
-            value,
-            label: cfg.setting.label(value),
-            chosen: run === chosenRun,
-            folds: joinFolds(ml, quant),
-            daily: daily.length ? toDaily(daily) : null,
-          };
-        }),
-      );
-      const chosenYearly = chosenRun ? await art(chosenRun, cfg.artifacts.yearly) : [];
-      let holdout: PathResults["holdout"] = null;
-      if (holdoutRun) {
-        const [ml, quant, daily] = await Promise.all([
-          art(holdoutRun, cfg.artifacts.mlPerFold),
-          art(holdoutRun, cfg.artifacts.quantPerFold),
-          art(holdoutRun, cfg.artifacts.daily),
-        ]);
-        holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily: toDaily(daily) };
+      if (snapshot) {
+        setData(await fetchPathResults(cfg, source, snapshotGetter(snapshot)));
+        return;
       }
-      setData({
-        experiment: exps.find((e) => e.name === cfg.source?.experiment) ?? null,
-        settings,
-        chosen: settings.find((s) => s.chosen) ?? null,
-        chosenDaily: settings.find((s) => s.chosen)?.daily ?? null,
-        chosenYearly,
-        holdout,
-      });
+      const { version, pushedAt } = await newestPush(experiment, section, source.zip);
+      const key = [experiment, section, source.zip, source.experiment, version, pushedAt].join("|");
+      let pending = memory.get(key);
+      if (!pending) {
+        const base = `/experiments/${experiment}/sections/${section}/mlflow/${encodeURIComponent(source.zip)}/${version}`;
+        const get: Getter = (path) => apiRequest(`${base}${path}?pushed=${encodeURIComponent(pushedAt)}`, { cache: "default" });
+        pending = fetchPathResults(cfg, source, get);
+        memory.set(key, pending);
+        pending.catch(() => memory.delete(key)); // a failed load is tried again next time
+      }
+      setData(await pending);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "The results couldn't be loaded.");
     } finally {
       setLoading(false);
     }
-  }, [experiment, section, cfg]);
+  }, [experiment, section, cfg, snapshot]);
 
   useEffect(() => {
-    if (server === "ready" && cfg.source) void load();
-  }, [server, cfg.source, load]);
+    // A shared copy needs no server; live results wait until the server is up.
+    if (cfg.source && (snapshot || server === "ready")) void load();
+  }, [server, cfg.source, snapshot, load]);
 
   return { data, loading, error, reload: load };
 }

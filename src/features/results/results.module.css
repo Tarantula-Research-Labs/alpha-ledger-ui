@@ -99,3 +99,5 @@
 .miniChosen { border-width: 1.5px; }
 .miniSub { margin: 0 0 4px; color: var(--muted); font-size: 11px; }
 .strongCell { color: var(--text); font-weight: 600; }
+
+.headActions { display: inline-flex; align-items: center; gap: 10px; }

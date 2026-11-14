@@ -489,9 +489,26 @@ function ChoiceView({ cfg, data }: { cfg: PathConfig; data: PathResults }) {
         <b>Reason (tag selection_reason):</b> {ch.run.tags.selection_reason ?? "Not recorded."}
       </div>
       <Source>{ch.run.name} tags: chosen, frozen_on, settings_tried, selection_reason</Source>
+      {CHOICE_PARTS.map((part, i) => (
+        <section key={part.title} className={c.choicePart}>
+          <h3 className={c.choicePartTitle}>
+            <span className={c.choicePartNum}>{i + 1}</span>
+            {part.title}
+          </h3>
+          <p className={c.cardSub}>{part.sub}</p>
+          <div className={c.choicePartEmpty}>Coming next.</div>
+        </section>
+      ))}
     </>
   );
 }
+
+/** The three steps of the choice. Content is added part by part. */
+const CHOICE_PARTS = [
+  { title: "Machine learning metrics: analysis and decision", sub: "What the prediction metrics say about each setting, and the decision they lead to." },
+  { title: "Quant metrics: analysis and decision", sub: "What the trading metrics say about each setting, and the decision they lead to." },
+  { title: "Combined metrics: analysis and decision", sub: "Prediction and trading metrics together, and the final choice." },
+];
 
 /* ------------------------------ 4. In sample ------------------------------ */
 

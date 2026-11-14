@@ -101,3 +101,8 @@
 .strongCell { color: var(--text); font-weight: 600; }
 
 .headActions { display: inline-flex; align-items: center; gap: 10px; }
+
+.choicePart { padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--well-bg); }
+.choicePartTitle { display: flex; align-items: center; gap: 10px; margin: 0 0 2px; font-size: var(--fs-md); font-weight: 600; color: var(--text); }
+.choicePartNum { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--chip-bg); font-size: 11px; color: var(--muted); }
+.choicePartEmpty { padding: 18px; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--faint); font-size: var(--fs-xs); text-align: center; }

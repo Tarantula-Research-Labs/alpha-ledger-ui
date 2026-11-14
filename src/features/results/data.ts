@@ -155,21 +155,23 @@ export interface SettingResult {
   daily: Daily | null;
 }
 
-/** Joint view across folds: precision good = above that fold's base rate; Sharpe good = net Sharpe > 0.
- *  Folds missing any of the three values (e.g. no long calls) are left out. */
-export function jointProbabilities(folds: Fold[]) {
-  const used = folds.filter((f) => isNum(f.precision) && isNum(f.baseRate) && isNum(f.sharpe));
-  const pg = used.map((f) => (f.precision as number) > (f.baseRate as number));
-  const sg = used.map((f) => (f.sharpe as number) > 0);
-  const both = pg.filter((x, i) => x && sg[i]).length;
-  const nPrec = pg.filter(Boolean).length;
+/** Conditional view across folds, for one signal (precision or IC) against fold PnL.
+ *  Signal good: precision above that fold's base rate, or fold IC above 0. PnL good: fold PnL above 0.
+ *  Folds missing a value (e.g. no long calls) are left out. Every share has a 95% Wilson CI. */
+export function conditionalProbabilities(folds: Fold[], signal: "precision" | "ic") {
+  const good = (f: Fold) => (signal === "precision" ? (f.precision as number) > (f.baseRate as number) : (f.ic as number) > 0);
+  const used = folds.filter((f) => isNum(f.pnl) && (signal === "precision" ? isNum(f.precision) && isNum(f.baseRate) : isNum(f.ic)));
+  const sg = used.filter(good);
+  const sb = used.filter((f) => !good(f));
+  const win = (a: Fold[]) => a.filter((f) => (f.pnl as number) > 0).length;
   return {
     folds: used.length,
     skipped: folds.length - used.length,
-    precisionGood: wilson(nPrec, used.length),
-    sharpeGood: wilson(sg.filter(Boolean).length, used.length),
-    bothGood: wilson(both, used.length),
-    sharpeGivenPrecision: wilson(both, nPrec),
+    signalGood: wilson(sg.length, used.length),
+    pnlGivenGood: wilson(win(sg), sg.length),
+    pnlGivenBad: wilson(win(sb), sb.length),
+    pnlGood: wilson(win(used), used.length),
+    bothGood: wilson(win(sg), used.length),
   };
 }
 

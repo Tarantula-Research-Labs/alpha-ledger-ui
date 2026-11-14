@@ -100,7 +100,7 @@ export function EquityChart({
         <polyline key={s.name} points={line(s.values, Y)} fill="none" stroke={s.color} strokeWidth={s.dashed ? 1.3 : 2} strokeDasharray={s.dashed ? "4 3" : undefined} />
       ))}
       <line className={c.axis} x1={L} x2={w - R} y1={top + 2} y2={top + 2} />
-      <text x={L + 4} y={top + 16} style={{ fill: "var(--red)" }}>
+      <text x={w - R - 4} y={top + 18} textAnchor="end" style={{ fill: "var(--red)" }}>
         Drawdown
       </text>
       <line className={c.grid} x1={L} x2={w - R} y1={Yd(0)} y2={Yd(0)} />
@@ -433,6 +433,75 @@ export function Scatter({
             <title>{`${g.label} · ${p.label}\nprecision ${p.x.toFixed(2)}\nPnL ${pct(p.y)}`}</title>
           </circle>
         )),
+      )}
+    </svg>
+  );
+}
+
+/** One setting: its folds as faint dots, plus the mean ± 95% CI cross (t, n = folds) in both directions. */
+export function FoldScatter({
+  points,
+  color,
+  bold,
+  xRef,
+  xFmt = (x) => x.toFixed(2),
+  yFmt = (y) => pct(y, 0),
+  height = 220,
+}: {
+  points: { x: number; y: number; label: string }[];
+  color: string;
+  bold?: boolean;
+  xRef: number;
+  xFmt?: (x: number) => string;
+  yFmt?: (y: number) => string;
+  height?: number;
+}) {
+  const w = 300;
+  const h = height;
+  const L = 40;
+  const B = 22;
+  const [xl, xh] = extent(points.map((p) => p.x), [xRef]);
+  const [yl, yh] = extent(points.map((p) => p.y), [0]);
+  const X = scale(xl, xh, L, w - 8);
+  const Y = scale(yl, yh, h - B, 8);
+  const cx = tCI(points.map((p) => p.x));
+  const cy = tCI(points.map((p) => p.y));
+  return (
+    <svg className={c.chart} viewBox={`0 0 ${w} ${h}`} role="img">
+      {ticks(yl, yh, 4).map((t) => (
+        <g key={t}>
+          <line className={c.grid} x1={L} x2={w - 8} y1={Y(t)} y2={Y(t)} />
+          <text x={L - 5} y={Y(t) + 4} textAnchor="end">
+            {yFmt(t)}
+          </text>
+        </g>
+      ))}
+      {ticks(xl, xh, 4).map((t) => (
+        <text key={t} x={X(t)} y={h - 6} textAnchor="middle">
+          {xFmt(t)}
+        </text>
+      ))}
+      <line x1={L} x2={w - 8} y1={Y(0)} y2={Y(0)} stroke="var(--muted)" strokeDasharray="3 3" />
+      <line x1={X(xRef)} x2={X(xRef)} y1={8} y2={h - B} stroke="var(--amber)" strokeDasharray="4 3" />
+      {points.map((p) => (
+        <circle key={p.label} cx={X(p.x)} cy={Y(p.y)} r={2.6} fill={color} fillOpacity={0.35}>
+          <title>{`${p.label}: x ${xFmt(p.x)}, y ${yFmt(p.y)}`}</title>
+        </circle>
+      ))}
+      {isNum(cx.lo) && isNum(cy.lo) && (
+        <g stroke={color} strokeWidth={bold ? 2.2 : 1.8}>
+          <line x1={X(cx.lo)} x2={X(cx.hi)} y1={Y(cy.m)} y2={Y(cy.m)} />
+          <line x1={X(cx.lo)} x2={X(cx.lo)} y1={Y(cy.m) - 4} y2={Y(cy.m) + 4} />
+          <line x1={X(cx.hi)} x2={X(cx.hi)} y1={Y(cy.m) - 4} y2={Y(cy.m) + 4} />
+          <line x1={X(cx.m)} x2={X(cx.m)} y1={Y(cy.lo)} y2={Y(cy.hi)} />
+          <line x1={X(cx.m) - 4} x2={X(cx.m) + 4} y1={Y(cy.lo)} y2={Y(cy.lo)} />
+          <line x1={X(cx.m) - 4} x2={X(cx.m) + 4} y1={Y(cy.hi)} y2={Y(cy.hi)} />
+        </g>
+      )}
+      {isNum(cx.m) && (
+        <circle cx={X(cx.m)} cy={Y(cy.m)} r={bold ? 5.5 : 4.5} fill={color} stroke="var(--text)" strokeWidth={1.2}>
+          <title>{`mean x ${xFmt(cx.m)} [${xFmt(cx.lo)}, ${xFmt(cx.hi)}]\nmean y ${yFmt(cy.m)} [${yFmt(cy.lo)}, ${yFmt(cy.hi)}]\nn = ${points.length} folds`}</title>
+        </circle>
       )}
     </svg>
   );

@@ -5,8 +5,8 @@
 import { useState, type ReactNode } from "react";
 import { Button, EmptyState, Panel } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { BoxCI, CIChart, EquityChart, GroupBars, Heatmap, Legend, NotComputed, PairBars, Scatter, f2, f3, pct } from "./charts";
-import { curves, decisionMetrics, jointProbabilities, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult } from "./data";
+import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, f2, f3, pct } from "./charts";
+import { conditionalProbabilities, curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
@@ -245,10 +245,6 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
   const chosen = data.chosen;
   const base = chosen ? metric(chosen.run, "base_rate") : null;
   const quarters = s[0].folds.map((f) => f.label);
-  const rho = (r: SettingResult) => {
-    const pts = r.folds.filter((f) => isNum(f.precision) && isNum(f.pnl));
-    return pts.length > 3 ? corr(pts.map((f) => f.precision as number), pts.map((f) => f.pnl as number)) : NaN;
-  };
   return (
     <>
       <p className={c.lead}>
@@ -333,75 +329,123 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
         <Card title="Sharpe per fold" sub="Box = spread across folds; red dot and bar = mean ± 95% CI." source={`${cfg.artifacts.quantPerFold} → sharpe`}>
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.sharpe), color: SERIES[i % 5], bold: r.chosen }))} fmt={(x) => x.toFixed(0)} valueFmt={(x) => x.toFixed(2)} />
         </Card>
-        <Card title="Precision vs PnL per fold" sub={chosen ? `One dot per fold; chosen in bold. ρ(precision, PnL) for ${chosen.label} = ${f2(rho(chosen))}.` : "One dot per fold."} source={`${cfg.artifacts.mlPerFold} + ${cfg.artifacts.quantPerFold}`}>
-          <Legend items={s.map((r, i) => ({ label: r.label, color: SERIES[i % 5] }))} />
-          <Scatter
-            xRef={base}
-            groups={s.map((r, i) => ({
-              label: r.label,
-              color: SERIES[i % 5],
-              bold: r.chosen,
-              points: r.folds.filter((f) => isNum(f.precision) && isNum(f.pnl)).map((f) => ({ x: f.precision as number, y: f.pnl as number, label: f.label })),
-            }))}
-          />
+        <Card title="PnL heatmap" sub="Setting × fold. A row that stays green is stable." source={`${cfg.artifacts.quantPerFold} → pnl`}>
+          <Heatmap columns={quarters} rows={s.map((r) => ({ label: r.label, values: r.folds.map((f) => f.pnl), bold: r.chosen }))} />
         </Card>
       </div>
-      <Card title="PnL heatmap" sub="Setting × fold. A row that stays green is stable." source={`${cfg.artifacts.quantPerFold} → pnl`}>
-        <Heatmap columns={quarters} rows={s.map((r) => ({ label: r.label, values: r.folds.map((f) => f.pnl), bold: r.chosen }))} />
-      </Card>
-      <JointCard settings={s} />
+      <SignalScatterCard cfg={cfg} settings={s} />
+      <ConditionalCard settings={s} />
       <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>
     </>
   );
 }
 
-/** Joint probabilities per setting, each with a 95% Wilson CI. */
-function JointCard({ settings }: { settings: SettingResult[] }) {
-  const rows = settings.map((r) => ({ r, j: jointProbabilities(r.folds) }));
-  const best = rows.reduce<(typeof rows)[number] | null>((b, x) => (isNum(x.j.bothGood.lo) && (!b || x.j.bothGood.lo > b.j.bothGood.lo) ? x : b), null);
-  const cell = (w: { p: number; lo: number; hi: number; k: number; n: number }) => (
-    <td title={`${w.k} of ${w.n} folds`}>
+/** One panel per setting: precision (or IC) against fold PnL (or Sharpe), with the mean ± 95% CI cross. */
+function SignalScatterCard({ cfg, settings }: { cfg: PathConfig; settings: SettingResult[] }) {
+  const [outcome, setOutcome] = useState<"pnl" | "sharpe">("pnl");
+  const rowsDef: { key: "precision" | "ic"; name: string }[] = [
+    { key: "precision", name: "Precision" },
+    { key: "ic", name: "IC" },
+  ];
+  const yFmt = outcome === "pnl" ? (y: number) => pct(y, 0) : (y: number) => y.toFixed(1);
+  const yName = outcome === "pnl" ? "PnL" : "Sharpe";
+  return (
+    <Card
+      title={`Signal vs ${yName} per fold, each setting`}
+      sub={`Faint dots = folds; cross = mean ± 95% CI (t, n = folds). Dashed lines: ${yName} = 0, and the base rate (precision) or IC = 0. ρ = correlation across folds.`}
+      source={`${cfg.artifacts.mlPerFold} + ${cfg.artifacts.quantPerFold}`}
+    >
+      <span className={c.seg} role="radiogroup" aria-label="Outcome" style={{ marginBottom: 10 }}>
+        {(["pnl", "sharpe"] as const).map((o) => (
+          <button key={o} type="button" role="radio" aria-checked={outcome === o} onClick={() => setOutcome(o)}>
+            {o === "pnl" ? "PnL" : "Sharpe"}
+          </button>
+        ))}
+      </span>
+      {rowsDef.map((rd) => (
+        <div key={rd.key} className={c.smallMultiples}>
+          {settings.map((r, i) => {
+            const base = metric(r.run, "base_rate") ?? 0.5;
+            const pts = r.folds
+              .map((f) => ({ x: rd.key === "precision" ? f.precision : f.ic, y: outcome === "pnl" ? f.pnl : f.sharpe, label: f.label }))
+              .filter((p): p is { x: number; y: number; label: string } => isNum(p.x) && isNum(p.y));
+            const cx = tCI(pts.map((p) => p.x));
+            const cy = tCI(pts.map((p) => p.y));
+            const rho = pts.length > 3 ? corr(pts.map((p) => p.x), pts.map((p) => p.y)) : NaN;
+            return (
+              <div key={r.run.run_id} className={`${c.mini} ${r.chosen ? c.miniChosen : ""}`} style={r.chosen ? { borderColor: SERIES[i % 5] } : undefined}>
+                <p className={c.miniTitle}>
+                  {r.label}
+                  {r.chosen ? " (chosen)" : ""} · ρ = {f2(rho)} · n = {pts.length}
+                </p>
+                <p className={c.miniSub}>
+                  {rd.name} {f2(cx.m)} ± {f2(cx.hi - cx.m)} · {yName} {yFmt(cy.m)} ± {yFmt(cy.hi - cy.m)}
+                </p>
+                <FoldScatter points={pts} color={SERIES[i % 5]} bold={r.chosen} xRef={rd.key === "precision" ? base : 0} yFmt={yFmt} />
+              </div>
+            );
+          })}
+        </div>
+      ))}
+    </Card>
+  );
+}
+
+/** P(PnL good | signal good) per setting, for precision and for IC, with 95% Wilson CIs. */
+function ConditionalCard({ settings }: { settings: SettingResult[] }) {
+  const cell = (w: { p: number; lo: number; hi: number; k: number; n: number }, strong = false) => (
+    <td title={`${w.k} of ${w.n} folds`} className={strong ? c.strongCell : undefined}>
       {pct(w.p, 0)} <span className={c.muted}>[{pct(w.lo, 0)}, {pct(w.hi, 0)}]</span>
     </td>
   );
   return (
     <Card
-      title="Joint probabilities"
-      sub="Across folds: precision good = above that fold's base rate; Sharpe good = net Sharpe above 0. 95% Wilson CIs. Folds missing a value (e.g. no long calls) are left out."
-      source="fold tables: precision, base_rate, sharpe"
+      title="Conditional probabilities"
+      sub="Does a good signal lead to a profitable fold? Precision good = above that fold's base rate; IC good = fold IC above 0; PnL good = fold PnL above 0. 95% Wilson CIs. Folds missing a value are left out."
+      source="fold tables: precision, base_rate, ic_spearman, pnl"
     >
-      <div className={c.scroll}>
-        <table className={c.table}>
-          <thead>
-            <tr>
-              <th scope="col">Setting</th>
-              <th scope="col">P(precision good)</th>
-              <th scope="col">P(Sharpe good)</th>
-              <th scope="col">P(both good)</th>
-              <th scope="col">P(Sharpe good | precision good)</th>
-              <th scope="col">Folds used</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map(({ r, j }) => (
-              <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
-                <td>
-                  {r.label} {r.chosen && <span className={c.pill}>chosen</span>}{" "}
-                  {best?.r === r && <span className={c.pillGood}>highest P(both) lower bound</span>}
-                </td>
-                {cell(j.precisionGood)}
-                {cell(j.sharpeGood)}
-                {cell(j.bothGood)}
-                {cell(j.sharpeGivenPrecision)}
-                <td>
-                  {j.folds}
-                  {j.skipped ? <span className={c.muted}> ({j.skipped} left out)</span> : null}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {(["precision", "ic"] as const).map((sig) => {
+        const rows = settings.map((r) => ({ r, p: conditionalProbabilities(r.folds, sig) }));
+        const top = Math.max(...rows.map((x) => (isNum(x.p.pnlGivenGood.p) ? x.p.pnlGivenGood.p : -1)));
+        const name = sig === "precision" ? "precision" : "IC";
+        return (
+          <div key={sig} className={c.scroll} style={{ marginBottom: 12 }}>
+            <p className={c.miniTitle}>{sig === "precision" ? "Precision → PnL" : "IC → PnL"}</p>
+            <table className={c.table}>
+              <thead>
+                <tr>
+                  <th scope="col">Setting</th>
+                  <th scope="col">Folds with {name} good</th>
+                  <th scope="col">P(PnL good | {name} good)</th>
+                  <th scope="col">P(PnL good | {name} bad)</th>
+                  <th scope="col">P({name} good)</th>
+                  <th scope="col">P(both good)</th>
+                  <th scope="col">P(PnL good), all folds</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map(({ r, p }) => (
+                  <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
+                    <td>
+                      {r.label} {r.chosen && <span className={c.pill}>chosen</span>}{" "}
+                      {p.pnlGivenGood.p === top && <span className={c.pillGood}>highest</span>}
+                    </td>
+                    <td>
+                      {p.signalGood.k} of {p.folds}
+                      {p.skipped ? <span className={c.muted}> ({p.skipped} left out)</span> : null}
+                    </td>
+                    {cell(p.pnlGivenGood, true)}
+                    {cell(p.pnlGivenBad)}
+                    {cell(p.signalGood)}
+                    {cell(p.bothGood)}
+                    {cell(p.pnlGood)}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        );
+      })}
     </Card>
   );
 }

@@ -92,3 +92,10 @@
 
 .arrow { display: inline-block; width: 1.1em; margin-left: 4px; color: var(--green); font-size: 0.8em; text-align: left; }
 .tableNote { margin: 8px 0 0; color: var(--muted); font-size: 11.5px; }
+
+.smallMultiples { display: grid; gap: 10px; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-bottom: 10px; }
+@media (max-width: 1200px) { .smallMultiples { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 700px) { .smallMultiples { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.miniChosen { border-width: 1.5px; }
+.miniSub { margin: 0 0 4px; color: var(--muted); font-size: 11px; }
+.strongCell { color: var(--text); font-weight: 600; }

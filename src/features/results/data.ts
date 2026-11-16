@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/core/api";
 import { useLedger } from "@/data/LedgerProvider";
-import { drawdown, equityFromLog, isNum, periodReturn, spearman, wilson } from "./stats";
+import { drawdown, equityFromLog, isNum, periodReturn, spearman, wilson, auc, rocCurve } from "./stats";
 import type { MlflowExperiment, MlflowRun, PathConfig, Row } from "./types";
 
 const num = (x: unknown): number | null => (isNum(x) ? x : null);
@@ -25,6 +25,7 @@ export interface Fold {
   label: string; // "2018-Q1"
   precision: number | null;
   ic: number | null;
+  auc: number | null; // only paths that log an auc column (from Path 1 step 2 on)
   baseRate: number | null;
   signals: number | null;
   pnl: number | null;
@@ -50,6 +51,7 @@ export function joinFolds(ml: Row[], quant: Row[]): Fold[] {
       label: foldLabel(start),
       precision: num(m.precision),
       ic: num(m.ic_spearman),
+      auc: num(m.auc),
       baseRate: num(m.base_rate),
       signals: num(m.n_signals),
       pnl: num(q.pnl),
@@ -68,6 +70,7 @@ export interface Daily {
   close: number[];
   signal: (number | null)[];
   prediction: (number | null)[];
+  score: (number | null)[]; // continuous score for AUC/ROC; missing in Path 1
   rebalance: boolean[];
 }
 
@@ -82,6 +85,7 @@ export function toDaily(rows: Row[]): Daily {
     close: rows.map((r) => z(r.close)),
     signal: rows.map((r) => num(r.backward_signal)),
     prediction: rows.map((r) => num(r.predictions)),
+    score: rows.map((r) => num(r.score)),
     rebalance: rows.map((r) => Number(r.is_rebalance_date) === 1),
   };
 }
@@ -114,12 +118,15 @@ export function decisionMetrics(d: Daily) {
   const at = d.rebalance.map((b, i) => (b ? i : -1)).filter((i) => i >= 0);
   const dec = at.slice(0, -1).map((i, k) => {
     const fwd = d.close[at[k + 1]] / d.close[i] - 1;
-    return { pred: d.prediction[i] ?? 0, actual: fwd > 0 ? 1 : 0, signal: d.signal[i], fwd };
+    return { pred: d.prediction[i] ?? 0, actual: fwd > 0 ? 1 : 0, signal: d.signal[i], score: d.score[i], fwd };
   });
   const tp = dec.filter((x) => x.pred === 1 && x.actual === 1).length;
   const longs = dec.filter((x) => x.pred === 1).length;
   const ups = dec.filter((x) => x.actual === 1).length;
   const withSignal = dec.filter((x) => isNum(x.signal));
+  const withScore = dec.filter((x) => isNum(x.score));
+  const scores = withScore.map((x) => x.score as number);
+  const actual = withScore.map((x) => x.actual);
   return {
     decisions: dec.length,
     longs,
@@ -128,6 +135,9 @@ export function decisionMetrics(d: Daily) {
     accuracy: dec.length ? dec.filter((x) => x.pred === x.actual).length / dec.length : NaN,
     baseRate: dec.length ? ups / dec.length : NaN,
     ic: withSignal.length > 3 ? spearman(withSignal.map((x) => x.signal as number), withSignal.map((x) => x.fwd)) : NaN,
+    // AUC and ROC only when the path logs a continuous score (from Path 1 step 2 on)
+    auc: withScore.length > 3 ? auc(scores, actual) : NaN,
+    roc: withScore.length > 3 ? rocCurve(scores, actual) : [],
   };
 }
 
@@ -155,12 +165,16 @@ export interface SettingResult {
   daily: Daily | null;
 }
 
-/** Conditional view across folds, for one signal (precision or IC) against fold PnL.
+/** True when a path logs AUC per fold (from Path 1 step 2 on). Path 1 does not. */
+export const hasAuc = (settings: { folds: Fold[] }[]) => settings.some((s) => s.folds.some((f) => isNum(f.auc)));
+
+/** Conditional view across folds, for one signal (precision, IC or AUC) against fold PnL.
  *  Signal good: precision above that fold's base rate, or fold IC above 0. PnL good: fold PnL above 0.
  *  Folds missing a value (e.g. no long calls) are left out. Every share has a 95% Wilson CI. */
-export function conditionalProbabilities(folds: Fold[], signal: "precision" | "ic") {
-  const good = (f: Fold) => (signal === "precision" ? (f.precision as number) > (f.baseRate as number) : (f.ic as number) > 0);
-  const used = folds.filter((f) => isNum(f.pnl) && (signal === "precision" ? isNum(f.precision) && isNum(f.baseRate) : isNum(f.ic)));
+export function conditionalProbabilities(folds: Fold[], signal: "precision" | "ic" | "auc") {
+  const good = (f: Fold) =>
+    signal === "precision" ? (f.precision as number) > (f.baseRate as number) : signal === "ic" ? (f.ic as number) > 0 : (f.auc as number) > 0.5;
+  const used = folds.filter((f) => isNum(f.pnl) && (signal === "precision" ? isNum(f.precision) && isNum(f.baseRate) : isNum(f[signal])));
   const sg = used.filter(good);
   const sb = used.filter((f) => !good(f));
   const win = (a: Fold[]) => a.filter((f) => (f.pnl as number) > 0).length;

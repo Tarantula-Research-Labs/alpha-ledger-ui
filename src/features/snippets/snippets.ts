@@ -528,3 +528,62 @@ print(f"Unzipped {info['saved_as']} (v{info['version']}) into {OUT_DIR}")
 print(f'Open it with:  mlflow ui --backend-store-uri sqlite:///{OUT_DIR}/mlflow.db')
 `;
 }
+
+export function aucImportsSnippet(): string {
+  return `import numpy as np
+import pandas as pd
+from scipy import stats
+from sklearn.metrics import roc_auc_score, roc_curve
+`;
+}
+
+export function aucSnippet(): string {
+  return `def auc_score(y_true, score):
+    """Chance that a random up row gets a higher score than a random down row. 0.5 = random."""
+    y = np.asarray(y_true).astype(bool)
+    s = np.asarray(score, dtype=float)
+    keep = ~np.isnan(s)
+    y, s = y[keep], s[keep]
+    if y.all() or not y.any():
+        return np.nan  # needs both up and down rows
+    return roc_auc_score(y, s)
+
+
+def roc_points(y_true, score):
+    """Points of the ROC curve, for plotting against the diagonal."""
+    fpr, tpr, _ = roc_curve(np.asarray(y_true).astype(bool), np.asarray(score, dtype=float))
+    return pd.DataFrame({"fpr": fpr, "tpr": tpr})
+
+
+def t_ci(values):
+    """Mean with a 95% t-interval (n = number of values)."""
+    v = pd.Series(values).dropna()
+    h = stats.t.ppf(0.975, len(v) - 1) * v.std(ddof=1) / np.sqrt(len(v))
+    return {"mean": v.mean(), "lo": v.mean() - h, "hi": v.mean() + h, "n": len(v)}
+
+
+def fold_auc(df, fold="fold", label="label", score="score"):
+    """Single stock: AUC per fold, then the mean with a 95% CI over folds."""
+    per_fold = df.groupby(fold).apply(lambda g: auc_score(g[label], g[score]))
+    return per_fold.rename("auc"), t_ci(per_fold)
+
+
+def cross_sectional_auc(df, date="date", fold="fold", label="label", score="score"):
+    """Multi-stock: AUC across stocks on each date, averaged per fold, then a 95% CI over folds."""
+    per_date = df.groupby([fold, date]).apply(lambda g: auc_score(g[label], g[score]))
+    per_fold = per_date.groupby(level=0).mean()
+    return per_fold.rename("auc"), t_ci(per_fold)
+`;
+}
+
+export function aucLogSnippet(): string {
+  return `per_fold, ci = fold_auc(rebalance_df)  # or cross_sectional_auc(rebalance_df) for many stocks
+
+mlflow.log_metric("auc_mean", ci["mean"])
+mlflow.log_metric("auc_ci_lo", ci["lo"])
+mlflow.log_metric("auc_ci_hi", ci["hi"])
+# add the per-fold column to the fold ML metrics table you already log:
+fold_metrics["auc"] = per_fold.reindex(fold_metrics["fold"]).to_numpy()
+mlflow.log_table(roc_points(holdout_df["label"], holdout_df["score"]), "roc_holdout.json")
+`;
+}

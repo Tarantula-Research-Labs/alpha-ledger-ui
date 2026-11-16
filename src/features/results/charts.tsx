@@ -515,3 +515,43 @@ export function NotComputed({ title, children }: { title: string; children: Reac
     </div>
   );
 }
+
+/** ROC curves against the diagonal (random). One curve per series. */
+export function RocChart({ series, height = 260 }: { series: { name: string; points: { fpr: number; tpr: number }[]; color: string; bold?: boolean }[]; height?: number }) {
+  const w = 300;
+  const h = height;
+  const L = 34;
+  const B = 24;
+  const R = 16;
+  const X = scale(0, 1, L, w - R);
+  const Y = scale(0, 1, h - B, 8);
+  const tk = [0, 0.25, 0.5, 0.75, 1];
+  return (
+    <svg className={`${c.chart} ${c.roc}`} viewBox={`0 0 ${w} ${h}`} role="img" aria-label="ROC curve">
+      {tk.map((t) => (
+        <g key={t}>
+          <line className={c.grid} x1={L} x2={w - R} y1={Y(t)} y2={Y(t)} />
+          <text x={L - 5} y={Y(t) + 4} textAnchor="end">
+            {t.toFixed(2)}
+          </text>
+          <text x={X(t)} y={h - 8} textAnchor="middle">
+            {t.toFixed(2)}
+          </text>
+        </g>
+      ))}
+      <line x1={X(0)} y1={Y(0)} x2={X(1)} y2={Y(1)} stroke="var(--muted)" strokeDasharray="4 3" />
+      {series.map((s) => (
+        <polyline
+          key={s.name}
+          fill="none"
+          stroke={s.color}
+          strokeWidth={s.bold ? 2.2 : 1.3}
+          strokeOpacity={s.bold ? 1 : 0.75}
+          points={s.points.map((p) => `${X(p.fpr)},${Y(p.tpr)}`).join(" ")}
+        >
+          <title>{s.name}</title>
+        </polyline>
+      ))}
+    </svg>
+  );
+}

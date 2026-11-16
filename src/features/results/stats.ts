@@ -105,3 +105,30 @@ export function drawdown(equity: number[]): number[] {
 
 /** Compounded simple return over a slice of daily log returns. */
 export const periodReturn = (logRets: number[]) => Math.exp(logRets.reduce((s, x) => s + x, 0)) - 1;
+
+/** AUC: chance a random positive gets a higher score than a random negative (ties count half). 0.5 = random. */
+export function auc(scores: number[], labels: number[]): number {
+  const pos = labels.filter((y) => y === 1).length;
+  const neg = labels.length - pos;
+  if (!pos || !neg) return NaN;
+  const r = ranks(scores);
+  const sumPos = r.reduce((s, x, i) => s + (labels[i] === 1 ? x + 1 : 0), 0);
+  return (sumPos - (pos * (pos + 1)) / 2) / (pos * neg);
+}
+
+/** ROC curve points (false positive rate, true positive rate), from the highest score down. */
+export function rocCurve(scores: number[], labels: number[]): { fpr: number; tpr: number }[] {
+  const pos = labels.filter((y) => y === 1).length;
+  const neg = labels.length - pos;
+  if (!pos || !neg) return [];
+  const order = scores.map((s, i) => [s, labels[i]] as const).sort((a, b) => b[0] - a[0]);
+  const pts = [{ fpr: 0, tpr: 0 }];
+  let tp = 0;
+  let fp = 0;
+  for (let i = 0; i < order.length; i++) {
+    if (order[i][1] === 1) tp++;
+    else fp++;
+    if (i === order.length - 1 || order[i + 1][0] !== order[i][0]) pts.push({ fpr: fp / neg, tpr: tp / pos });
+  }
+  return pts;
+}

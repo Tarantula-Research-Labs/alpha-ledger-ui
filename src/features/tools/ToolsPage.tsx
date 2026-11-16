@@ -8,6 +8,9 @@ import {
   loadMarketDataSnippet,
   walkForwardImportsSnippet,
   walkForwardSnippet,
+  aucImportsSnippet,
+  aucLogSnippet,
+  aucSnippet,
 } from "@/features/snippets/snippets";
 import t from "./tools.module.css";
 
@@ -103,6 +106,32 @@ const TOOLS: Tool[] = [
           fold&apos;s dates and row counts.
         </p>
         <CodeRow code={walkForwardSnippet()} imports={walkForwardImportsSnippet()} />
+      </>
+    ),
+  },
+  {
+    title: "AUC and ROC",
+    text: "Ranking skill of a score: the classification counterpart of IC. Standard ML metric for every path after Path 1.",
+    body: (
+      <>
+        <p className={t.text}>
+          <strong>What it is:</strong> the chance that a random up row gets a higher score than a random down row. 0.5 is
+          random; 2·AUC − 1 is a rank correlation, like IC. It needs no threshold and does not depend on the base rate.
+        </p>
+        <p className={t.text}>
+          <strong>Use the continuous score</strong> (probability, predicted return, or the past return for momentum), not
+          the 0/1 signal: on a 0/1 signal AUC is just balanced accuracy. Score only rebalance days, like precision. Read it
+          with precision at your threshold (the trades taken) and IC (size of the move).
+        </p>
+        <p className={t.text}>
+          <strong>1. Functions.</strong> <code>label</code> is 1 when the forward return is above 0.
+        </p>
+        <CodeRow code={aucSnippet()} imports={aucImportsSnippet()} />
+        <p className={t.text}>
+          <strong>2. Log to MLflow.</strong> Adds an <code>auc</code> column to the per-fold ML metrics and the holdout ROC
+          points.
+        </p>
+        <CodeRow code={aucLogSnippet()} none="Needs import mlflow, and the functions from step 1." />
       </>
     ),
   },

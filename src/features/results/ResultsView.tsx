@@ -5,9 +5,9 @@
 import { useState, type ReactNode } from "react";
 import { Button, EmptyState, Panel } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, f2, f3, pct } from "./charts";
+import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, RocChart, f2, f3, pct } from "./charts";
 import { ShareButton } from "@/features/share/ShareButton";
-import { conditionalProbabilities, curves, decisionMetrics, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
+import { conditionalProbabilities, curves, decisionMetrics, hasAuc, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { ChoiceTable, MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
@@ -208,6 +208,13 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
                 <td className={verdict(dm.ic, 0, "higher")}>{isNum(dm.ic) ? (dm.ic >= 0 ? "+" : "") + dm.ic.toFixed(2) : "–"}</td>
                 <td>0</td>
               </tr>
+              {isNum(dm.auc) && (
+                <tr>
+                  <td>AUC</td>
+                  <td className={verdict(dm.auc, 0.5, "higher")}>{f3(dm.auc)}</td>
+                  <td>random 0.500</td>
+                </tr>
+              )}
               <tr>
                 <td>Decisions / long calls</td>
                 <td>
@@ -217,6 +224,12 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
               </tr>
             </tbody>
           </table>
+          {dm.roc.length > 0 && (
+            <>
+              <p className={c.miniTitle} style={{ marginTop: 12 }}>ROC curve · dashed = random</p>
+              <RocChart series={[{ name: label, points: dm.roc, color: STRAT, bold: true }]} height={220} />
+            </>
+          )}
         </Card>
       </div>
       <Card title="PnL per quarter" source={`${h.run.name} → ${cfg.artifacts.daily}`}>
@@ -246,6 +259,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
   const chosen = data.chosen;
   const base = chosen ? metric(chosen.run, "base_rate") : null;
   const quarters = s[0].folds.map((f) => f.label);
+  const showAuc = hasAuc(s);
+  const rocs = s.map((r, i) => ({ name: r.label, points: r.daily ? decisionMetrics(r.daily).roc : [], color: SERIES[i % 5], bold: r.chosen })).filter((x) => x.points.length);
   return (
     <>
       <p className={c.lead}>
@@ -262,6 +277,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 <th scope="col">Lower bound</th>
                 <th scope="col">IC (all decisions)</th>
                 <th scope="col">Mean fold IC [95% CI]</th>
+                {showAuc && <th scope="col">Mean fold AUC [95% CI]</th>}
                 <th scope="col">Mean fold PnL [95% CI]</th>
                 <th scope="col">Sharpe</th>
                 <th scope="col">Max DD</th>
@@ -274,6 +290,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 const p = tCI(r.folds.map((f) => f.precision));
                 const q = tCI(r.folds.map((f) => f.pnl));
                 const fic = tCI(r.folds.map((f) => f.ic));
+                const fauc = tCI(r.folds.map((f) => f.auc));
                 const ic = r.daily ? decisionMetrics(r.daily).ic : NaN;
                 return (
                   <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
@@ -289,6 +306,11 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                     <td className={c.muted}>
                       {sg(fic.m)} [{sg(fic.lo)}, {sg(fic.hi)}]
                     </td>
+                    {showAuc && (
+                      <td className={isNum(fauc.m) ? (fauc.m > 0.5 ? c.good : c.bad) : ""}>
+                        {f3(fauc.m)} [{f3(fauc.lo)}, {f3(fauc.hi)}]
+                      </td>
+                    )}
                     <td>
                       {pct(q.m)} [{pct(q.lo)}, {pct(q.hi)}]
                     </td>
@@ -326,6 +348,21 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.pnl), color: SERIES[i % 5], bold: r.chosen }))} />
         </Card>
       </div>
+      {(showAuc || rocs.length > 0) && (
+        <div className={c.two}>
+          {showAuc && (
+            <Card title="AUC by setting" sub="Mean ± 95% CI over folds. Dashed line = random (0.5)." source={`${cfg.artifacts.mlPerFold} → auc`}>
+              <CIChart rows={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.auc), color: SERIES[i % 5], bold: r.chosen }))} reference={0.5} referenceLabel="random 0.5" />
+            </Card>
+          )}
+          {rocs.length > 0 && (
+            <Card title="ROC curves" sub="Rebalance decisions, all folds. Dashed diagonal = random." source={`${cfg.artifacts.daily} → score`}>
+              <Legend items={rocs.map((r) => ({ label: r.name, color: r.color }))} />
+              <RocChart series={rocs} />
+            </Card>
+          )}
+        </div>
+      )}
       <div className={c.two}>
         <Card title="Sharpe per fold" sub="Box = spread across folds; red dot and bar = mean ± 95% CI." source={`${cfg.artifacts.quantPerFold} → sharpe`}>
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.sharpe), color: SERIES[i % 5], bold: r.chosen }))} fmt={(x) => x.toFixed(0)} valueFmt={(x) => x.toFixed(2)} />
@@ -344,9 +381,10 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
 /** One panel per setting: precision (or IC) against fold PnL (or Sharpe), with the mean ± 95% CI cross. */
 function SignalScatterCard({ cfg, settings }: { cfg: PathConfig; settings: SettingResult[] }) {
   const [outcome, setOutcome] = useState<"pnl" | "sharpe">("pnl");
-  const rowsDef: { key: "precision" | "ic"; name: string }[] = [
+  const rowsDef: { key: "precision" | "ic" | "auc"; name: string }[] = [
     { key: "precision", name: "Precision" },
     { key: "ic", name: "IC" },
+    ...(hasAuc(settings) ? [{ key: "auc" as const, name: "AUC" }] : []),
   ];
   const yFmt = outcome === "pnl" ? (y: number) => pct(y, 0) : (y: number) => y.toFixed(1);
   const yName = outcome === "pnl" ? "PnL" : "Sharpe";
@@ -368,7 +406,7 @@ function SignalScatterCard({ cfg, settings }: { cfg: PathConfig; settings: Setti
           {settings.map((r, i) => {
             const base = metric(r.run, "base_rate") ?? 0.5;
             const pts = r.folds
-              .map((f) => ({ x: rd.key === "precision" ? f.precision : f.ic, y: outcome === "pnl" ? f.pnl : f.sharpe, label: f.label }))
+              .map((f) => ({ x: f[rd.key], y: outcome === "pnl" ? f.pnl : f.sharpe, label: f.label }))
               .filter((p): p is { x: number; y: number; label: string } => isNum(p.x) && isNum(p.y));
             const cx = tCI(pts.map((p) => p.x));
             const cy = tCI(pts.map((p) => p.y));
@@ -382,7 +420,7 @@ function SignalScatterCard({ cfg, settings }: { cfg: PathConfig; settings: Setti
                 <p className={c.miniSub}>
                   {rd.name} {f2(cx.m)} ± {f2(cx.hi - cx.m)} · {yName} {yFmt(cy.m)} ± {yFmt(cy.hi - cy.m)}
                 </p>
-                <FoldScatter points={pts} color={SERIES[i % 5]} bold={r.chosen} xRef={rd.key === "precision" ? base : 0} yFmt={yFmt} />
+                <FoldScatter points={pts} color={SERIES[i % 5]} bold={r.chosen} xRef={rd.key === "precision" ? base : rd.key === "auc" ? 0.5 : 0} yFmt={yFmt} />
               </div>
             );
           })}
@@ -402,16 +440,16 @@ function ConditionalCard({ settings }: { settings: SettingResult[] }) {
   return (
     <Card
       title="Conditional probabilities"
-      sub="Does a good signal lead to a profitable fold? Precision good = above that fold's base rate; IC good = fold IC above 0; PnL good = fold PnL above 0. 95% Wilson CIs. Folds missing a value are left out."
+      sub="Does a good signal lead to a profitable fold? Precision good = above that fold's base rate; IC good = fold IC above 0; AUC good (when logged) = fold AUC above 0.5; PnL good = fold PnL above 0. 95% Wilson CIs. Folds missing a value are left out."
       source="fold tables: precision, base_rate, ic_spearman, pnl"
     >
-      {(["precision", "ic"] as const).map((sig) => {
+      {(hasAuc(settings) ? (["precision", "ic", "auc"] as const) : (["precision", "ic"] as const)).map((sig) => {
         const rows = settings.map((r) => ({ r, p: conditionalProbabilities(r.folds, sig) }));
         const top = Math.max(...rows.map((x) => (isNum(x.p.pnlGivenGood.p) ? x.p.pnlGivenGood.p : -1)));
-        const name = sig === "precision" ? "precision" : "IC";
+        const name = sig === "precision" ? "precision" : sig === "ic" ? "IC" : "AUC";
         return (
           <div key={sig} className={c.scroll} style={{ marginBottom: 12 }}>
-            <p className={c.miniTitle}>{sig === "precision" ? "Precision → PnL" : "IC → PnL"}</p>
+            <p className={c.miniTitle}>{sig === "precision" ? "Precision → PnL" : sig === "ic" ? "IC → PnL" : "AUC → PnL"}</p>
             <table className={c.table}>
               <thead>
                 <tr>

@@ -121,3 +121,4 @@
 .verdict dd { margin: 0; color: var(--text); }
 .verdict b { color: var(--green); }
 @media (max-width: 700px) { .verdict div { grid-template-columns: minmax(0, 1fr); gap: 2px; } }
+.roc { max-width: 360px; margin: 0 auto; }

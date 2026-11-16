@@ -20,14 +20,14 @@ function steps(experiment: string): CodeStep[] {
   return [
     {
       title: "Zip and push your MLflow results",
-      text: "Zips mlflow.db and the mlruns folder into one file and pushes it here. Use one name per path; the same name again saves a new version (_v2, _v3, …).",
-      code: pushMlflowZipSnippet(experiment, FOLDER, "mlflow_path_1.zip"),
+      text: "Zips mlflow.db and the mlruns folder into one file and pushes it here. Always push as mlflow_baselines.zip with every experiment inside; each push saves a new version (_v2, _v3, …) and the dashboard reads the latest.",
+      code: pushMlflowZipSnippet(experiment, FOLDER, "mlflow_baselines.zip"),
       imports: mlflowZipImportsSnippet(),
     },
     {
       title: "Retrieve and open it",
       text: "Downloads a pushed zip and unzips it, so you can open the runs again with mlflow ui on any machine.",
-      code: retrieveMlflowZipSnippet(experiment, FOLDER, "mlflow_path_1.zip"),
+      code: retrieveMlflowZipSnippet(experiment, FOLDER, "mlflow_baselines.zip"),
       imports: mlflowZipImportsSnippet(),
     },
   ];

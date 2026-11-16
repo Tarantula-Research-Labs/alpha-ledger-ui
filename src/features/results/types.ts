@@ -10,11 +10,27 @@ export interface PathConfig {
   source?: { zip: string; experiment: string };
   /** The setting that differs between in-sample runs, e.g. the momentum lookback. */
   setting: { param: string; name: string; label: (value: string) => string };
+  /** Extra components only this path shows (new tests, new CI charts…), by name from the EXTRAS registry
+   *  in ResultsView. Every path gets the default template; extras are added on top. */
+  extras?: string[];
   benchmark: string; // e.g. "CRISIL buy-and-hold"
+  /** "single" (default): one stock, daily rows in outputs.json. "portfolio": many stocks; daily returns come
+   *  from portfolio.json (outputs.json is one row per stock per day and is never loaded). */
+  kind?: "single" | "portfolio";
+  /** Experiment tag holding this path's config (default "config"). */
+  configTag?: string;
   artifacts: {
     mlPerFold: string; // fold, precision, recall, accuracy, ic_spearman, …, base_rate, n_signals
     quantPerFold: string; // fold, pnl, sharpe, sortino, volatility, max_drawdown
     yearly?: string; // year, return, sharpe, max_drawdown
+    /** Portfolio paths: daily strategy and benchmark (portfolio.json); optional gross and names held (portfolio_detail.json). */
+    portfolioDetail?: string;
+    // Optional tables read by extras (each extra shows only when its table is logged on the run)
+    tests?: string; // test, sample, metric, hypothesis, why_this_test, statistic, null_center, effect_size, p_value, ci_low, ci_high, ci_type, n, decision
+    nullDistributions?: string; // test, metric, draw, value
+    rebalanceMetrics?: string; // datetime, fold, …, ic, auc, names_held_after, n_buys, n_sells, turnover, cost_drag
+    quantileReturns?: string; // datetime, quantile, n_stocks, mean_signal, mean_held_return, hit_rate
+    stockContribution?: string; // ticker, days_held, n_trades, contribution, gross_contribution, cost_contribution
     daily: string; // datetime, close, backward_signal, predictions, log_returns, is_rebalance_date, positions, strategy_returns, strategy_returns_tc
   };
   /** Facts not stored in MLflow, shown as written. */

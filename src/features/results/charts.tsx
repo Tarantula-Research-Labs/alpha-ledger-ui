@@ -555,3 +555,117 @@ export function RocChart({ series, height = 260 }: { series: { name: string; poi
     </svg>
   );
 }
+
+/** Lines over dates (gaps where a value is missing), with an optional dashed reference line. */
+export function LineChart({
+  dates,
+  series,
+  fmt = (x) => x.toFixed(2),
+  reference,
+  height = 220,
+}: {
+  dates: string[];
+  series: { name: string; values: (number | null)[]; color: string; dashed?: boolean; faint?: boolean }[];
+  fmt?: (x: number) => string;
+  reference?: number;
+  height?: number;
+}) {
+  const w = 1000;
+  const L = 52;
+  const R = 10;
+  const B = 22;
+  const n = dates.length;
+  const X = scale(0, Math.max(1, n - 1), L, w - R);
+  const vals = series.flatMap((s) => s.values).filter(isNum);
+  const [lo, hi] = extent(vals, isNum(reference) ? [reference] : []);
+  const Y = scale(lo, hi, height - B, 8);
+  const segments = (v: (number | null)[]) => {
+    const out: string[] = [];
+    let cur: string[] = [];
+    v.forEach((x, i) => {
+      if (isNum(x)) cur.push(`${X(i).toFixed(1)},${Y(x).toFixed(1)}`);
+      else if (cur.length) (out.push(cur.join(" ")), (cur = []));
+    });
+    if (cur.length) out.push(cur.join(" "));
+    return out;
+  };
+  let last = "";
+  // Year labels when the dates span more than two years, otherwise quarter starts
+  const yearly = n > 1 && Number(dates[n - 1].slice(0, 4)) - Number(dates[0].slice(0, 4)) > 2;
+  return (
+    <svg className={c.chart} viewBox={`0 0 ${w} ${height}`} role="img">
+      {ticks(lo, hi, 4).map((t) => (
+        <g key={t}>
+          <line className={c.grid} x1={L} x2={w - R} y1={Y(t)} y2={Y(t)} />
+          <text x={L - 6} y={Y(t) + 4} textAnchor="end">
+            {fmt(t)}
+          </text>
+        </g>
+      ))}
+      {dates.map((d, i) => {
+        const label = yearly ? d.slice(0, 4) : d.slice(0, 7);
+        if (label === last || (!yearly && !["01", "04", "07", "10"].includes(d.slice(5, 7)))) return null;
+        last = label;
+        return (
+          <text key={d} x={X(i)} y={height - 6} textAnchor="middle">
+            {label}
+          </text>
+        );
+      })}
+      {isNum(reference) && <line x1={L} x2={w - R} y1={Y(reference)} y2={Y(reference)} stroke="var(--muted)" strokeDasharray="4 3" />}
+      {series.map((s) =>
+        segments(s.values).map((pts, k) => (
+          <polyline
+            key={`${s.name}-${k}`}
+            points={pts}
+            fill="none"
+            stroke={s.color}
+            strokeWidth={s.faint ? 1 : 1.8}
+            strokeOpacity={s.faint ? 0.4 : 1}
+            strokeDasharray={s.dashed ? "4 3" : undefined}
+          >
+            <title>{s.name}</title>
+          </polyline>
+        )),
+      )}
+    </svg>
+  );
+}
+
+/** Histogram of a null distribution, with the real value marked. */
+export function Histogram({ values, mark, color, fmt = (x) => x.toFixed(2), height = 150, bins = 30 }: { values: number[]; mark: number | null; color: string; fmt?: (x: number) => string; height?: number; bins?: number }) {
+  const w = 300;
+  const L = 8;
+  const R = 8;
+  const B = 20;
+  const v = values.filter(isNum);
+  if (!v.length) return null;
+  const [lo, hi] = extent(v, isNum(mark) ? [mark] : [], 0.04);
+  const width = (hi - lo) / bins;
+  const counts = new Array<number>(bins).fill(0);
+  v.forEach((x) => counts[Math.min(bins - 1, Math.max(0, Math.floor((x - lo) / width)))]++);
+  const top = Math.max(...counts);
+  const X = scale(lo, hi, L, w - R);
+  const Y = scale(0, top, height - B, 6);
+  return (
+    <svg className={c.chart} viewBox={`0 0 ${w} ${height}`} role="img">
+      {counts.map((k, i) => (
+        <rect key={i} x={X(lo + i * width) + 0.5} width={Math.max(0.5, X(lo + width) - X(lo) - 1)} y={Y(k)} height={Y(0) - Y(k)} fill={color} fillOpacity={0.35} />
+      ))}
+      <line className={c.axis} x1={L} x2={w - R} y1={Y(0)} y2={Y(0)} />
+      {[lo, (lo + hi) / 2, hi].map((t, k) => (
+        <text key={t} x={X(t)} y={height - 5} textAnchor={k === 0 ? "start" : k === 2 ? "end" : "middle"}>
+          {fmt(t)}
+        </text>
+      ))}
+      {isNum(mark) && (
+        <g>
+          <line x1={X(mark)} x2={X(mark)} y1={4} y2={Y(0)} stroke="var(--red)" strokeWidth={2} />
+          <text x={X(mark)} y={12} textAnchor={X(mark) > w * 0.7 ? "end" : "start"} dx={X(mark) > w * 0.7 ? -4 : 4} className={c.boldText}>
+            real {fmt(mark)}
+          </text>
+        </g>
+      )}
+    </svg>
+  );
+}

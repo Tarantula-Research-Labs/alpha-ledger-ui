@@ -7,6 +7,7 @@ import { Button, EmptyState, Panel } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
 import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, RocChart, f2, f3, pct } from "./charts";
 import { ShareButton } from "@/features/share/ShareButton";
+import { EXTRAS } from "./extras";
 import { conditionalProbabilities, curves, decisionMetrics, hasAuc, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { ChoiceTable, MlflowRun, PathConfig } from "./types";
@@ -14,6 +15,8 @@ import c from "./results.module.css";
 
 type Mode = "net" | "gross";
 type View = "holdout" | "settings" | "choice" | "insample" | "findings" | "about";
+
+
 
 const SERIES = ["var(--accent)", "var(--amber)", "var(--green)", "var(--violet)", "#e8793a"];
 const STRAT = "var(--accent)";
@@ -35,6 +38,9 @@ function Card({ title, sub, children, source }: { title: string; sub?: ReactNode
   );
 }
 
+/** Short benchmark name for table headers and legends. */
+const bhName = (cfg: PathConfig) => (cfg.kind === "portfolio" ? "Benchmark" : "Buy-and-hold");
+
 const metric = (run: MlflowRun, key: string, mode: Mode = "net") => {
   const m = run.metrics;
   const v = mode === "gross" && isNum(m[`${key}_gross`]) ? m[`${key}_gross`] : m[key];
@@ -52,7 +58,7 @@ function verdict(a: number | null, b: number | null, better: Better) {
  *  A green ▲ = better than buy-and-hold; no arrow = worse or no benchmark. */
 function QuantTable({ run, label, mode, benchmark }: { run: MlflowRun; label: string; mode: Mode; benchmark: string }) {
   // [name, value, benchmark value, format, which way is better, does the sign carry meaning]
-  const rows: [string, number | null, number | null, (x: number | null) => string, Better, boolean][] = [
+  const all: [string, number | null, number | null, (x: number | null) => string, Better, boolean][] = [
     ["PnL", metric(run, "pnl", mode), metric(run, "bh_pnl"), pct, "higher", true],
     ["CAGR", metric(run, "cagr", mode), metric(run, "bh_cagr"), pct, "higher", true],
     ["Sharpe", metric(run, "sharpe", mode), metric(run, "bh_sharpe"), f2, "higher", true],
@@ -67,7 +73,15 @@ function QuantTable({ run, label, mode, benchmark }: { run: MlflowRun; label: st
     ["EV per trade", metric(run, "ev_per_trade"), null, (x) => pct(x, 2), null, true],
     ["Avg win", metric(run, "avg_win"), null, pct, null, true],
     ["Avg loss", metric(run, "avg_loss"), null, pct, null, true],
+    // portfolio paths only; hidden when not logged
+    ["Excess PnL", metric(run, "excess_pnl"), null, pct, null, true],
+    ["Information ratio", metric(run, "information_ratio"), null, f2, null, true],
+    ["Alpha (per year)", metric(run, "alpha"), null, pct, null, true],
+    ["Beta", metric(run, "beta"), 1, f2, null, false],
+    ["Avg names held", metric(run, "avg_holdings"), null, (x) => (isNum(x) ? x.toFixed(0) : "–"), null, false],
   ];
+  const portfolioOnly = ["Excess PnL", "Information ratio", "Alpha (per year)", "Beta", "Avg names held"];
+  const rows = all.filter(([name, a]) => isNum(a) || !portfolioOnly.includes(name));
   const beats = (a: number | null, b: number | null, better: Better) =>
     !!better && isNum(a) && isNum(b) && (better === "higher" ? a > b : a < b);
   return (
@@ -148,15 +162,15 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
           />
         </Card>
         <Card title="Quant metrics" source={`${h.run.name} metrics`}>
-          <QuantTable run={h.run} label={label} mode={mode} benchmark="Buy-and-hold" />
+          <QuantTable run={h.run} label={label} mode={mode} benchmark={bhName(cfg)} />
         </Card>
       </div>
       <div className={c.twoOne}>
-        <Card title="Strategy vs buy-and-hold" source={`${h.run.name} metrics`}>
+        <Card title={`Strategy vs ${bhName(cfg).toLowerCase()}`} source={`${h.run.name} metrics`}>
           <Legend
             items={[
               { label, color: STRAT },
-              { label: "Buy-and-hold", color: BENCH },
+              { label: bhName(cfg), color: BENCH },
             ]}
           />
           <div className={c.miniGrid}>
@@ -167,13 +181,16 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
                   fmt={fmt}
                   items={[
                     { name: label, value: metric(h.run, k, mode), color: STRAT },
-                    { name: "Buy-and-hold", value: metric(h.run, bk), color: BENCH },
+                    { name: bhName(cfg), value: metric(h.run, bk), color: BENCH },
                   ]}
                 />
               </div>
             ))}
           </div>
         </Card>
+        {cfg.kind === "portfolio" ? (
+          <PortfolioMlCard run={h.run} label={label} />
+        ) : (
         <Card
           title="ML metrics"
           sub={`Scored on the ${dm.decisions} rebalance decisions (${dm.longs} long calls), so noisy. Green / red = above / below the reference.`}
@@ -231,23 +248,67 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
             </>
           )}
         </Card>
+        )}
       </div>
       <Card title="PnL per quarter" source={`${h.run.name} → ${cfg.artifacts.daily}`}>
         <Legend
           items={[
             { label, color: STRAT },
-            { label: "Buy-and-hold", color: BENCH },
+            { label: bhName(cfg), color: BENCH },
           ]}
         />
         <GroupBars
           labels={quarters.map((q) => q.label)}
           series={[
             { name: label, values: quarters.map((q) => q.strategy), color: STRAT },
-            { name: "Buy-and-hold", values: quarters.map((q) => q.bench), color: BENCH },
+            { name: bhName(cfg), values: quarters.map((q) => q.bench), color: BENCH },
           ]}
         />
       </Card>
     </>
+  );
+}
+
+/** Holdout ML metrics of a portfolio path, from the logged run metrics (rebalance days, in-index stocks). */
+function PortfolioMlCard({ run, label }: { run: MlflowRun; label: string }) {
+  const m = (k: string) => metric(run, k);
+  const base = m("base_rate");
+  const majority = isNum(base) ? Math.max(base, 1 - base) : null;
+  const signed = (x: number | null) => (isNum(x) ? (x >= 0 ? "+" : "") + x.toFixed(3) : "–");
+  const rows: [string, number | null, number | null, string, (x: number | null) => string][] = [
+    ["Precision, pooled", m("rebalance_precision"), base, `base rate ${f3(base)}`, f3],
+    ["Precision, per date", m("rebalance_precision_cross_sectional"), base, `base rate ${f3(base)}`, f3],
+    ["Recall, per date", m("recall_cross_sectional"), null, "–", f3],
+    ["Accuracy, per date", m("accuracy_cross_sectional"), majority, `majority guess ${f3(majority)}`, f3],
+    ["IC, per date", m("ic_cross_sectional"), 0, "0", signed],
+    ["AUC, pooled", m("rebalance_auc"), 0.5, "random 0.500", f3],
+    ["AUC, per date", m("auc_cross_sectional"), 0.5, "random 0.500", f3],
+  ];
+  return (
+    <Card
+      title="ML metrics"
+      sub="Rebalance days, stocks in the index on that date. Per date = across stocks on each rebalance date, then averaged. Green / red = above / below the reference."
+      source={`${run.name} metrics`}
+    >
+      <table className={c.table}>
+        <thead>
+          <tr>
+            <th scope="col">Metric</th>
+            <th scope="col">{label}</th>
+            <th scope="col">Reference</th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map(([name, v, ref, refText, f]) => (
+            <tr key={name}>
+              <td>{name}</td>
+              <td className={isNum(ref) ? verdict(v, ref, "higher") : ""}>{f(v)}</td>
+              <td>{refText}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </Card>
   );
 }
 
@@ -260,6 +321,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
   const base = chosen ? metric(chosen.run, "base_rate") : null;
   const quarters = s[0].folds.map((f) => f.label);
   const showAuc = hasAuc(s);
+  const showCs = s.some((r) => r.folds.some((f) => isNum(f.icCs) || isNum(f.aucCs)));
+  const portfolio = cfg.kind === "portfolio";
   const rocs = s.map((r, i) => ({ name: r.label, points: r.daily ? decisionMetrics(r.daily).roc : [], color: SERIES[i % 5], bold: r.chosen })).filter((x) => x.points.length);
   return (
     <>
@@ -275,9 +338,11 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 <th scope="col">Precision (all decisions)</th>
                 <th scope="col">Precision per fold [95% CI]</th>
                 <th scope="col">Lower bound</th>
-                <th scope="col">IC (all decisions)</th>
+                <th scope="col">{portfolio ? "IC per date (run)" : "IC (all decisions)"}</th>
                 <th scope="col">Mean fold IC [95% CI]</th>
                 {showAuc && <th scope="col">Mean fold AUC [95% CI]</th>}
+                {showCs && <th scope="col">Mean fold IC per date [95% CI]</th>}
+                {showCs && <th scope="col">Mean fold AUC per date [95% CI]</th>}
                 <th scope="col">Mean fold PnL [95% CI]</th>
                 <th scope="col">Sharpe</th>
                 <th scope="col">Max DD</th>
@@ -291,7 +356,9 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                 const q = tCI(r.folds.map((f) => f.pnl));
                 const fic = tCI(r.folds.map((f) => f.ic));
                 const fauc = tCI(r.folds.map((f) => f.auc));
-                const ic = r.daily ? decisionMetrics(r.daily).ic : NaN;
+                const ic = portfolio ? (metric(r.run, "ic_cross_sectional") ?? NaN) : r.daily ? decisionMetrics(r.daily).ic : NaN;
+                const icCs = tCI(r.folds.map((f) => f.icCs));
+                const aucCs = tCI(r.folds.map((f) => f.aucCs));
                 return (
                   <tr key={r.run.run_id} className={r.chosen ? c.chosenRow : undefined}>
                     <td>
@@ -311,6 +378,16 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
                         {f3(fauc.m)} [{f3(fauc.lo)}, {f3(fauc.hi)}]
                       </td>
                     )}
+                    {showCs && (
+                      <td className={isNum(icCs.m) ? (icCs.m > 0 ? c.good : c.bad) : ""}>
+                        {sg(icCs.m)} [{sg(icCs.lo)}, {sg(icCs.hi)}]
+                      </td>
+                    )}
+                    {showCs && (
+                      <td className={isNum(aucCs.m) ? (aucCs.m > 0.5 ? c.good : c.bad) : ""}>
+                        {f3(aucCs.m)} [{f3(aucCs.lo)}, {f3(aucCs.hi)}]
+                      </td>
+                    )}
                     <td>
                       {pct(q.m)} [{pct(q.lo)}, {pct(q.hi)}]
                     </td>
@@ -323,7 +400,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
               })}
               {chosen && (
                 <tr>
-                  <td className={c.muted}>Buy-and-hold</td>
+                  <td className={c.muted}>{bhName(cfg)}</td>
                   <td>base rate {f3(base)}</td>
                   <td />
                   <td />
@@ -348,6 +425,16 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.pnl), color: SERIES[i % 5], bold: r.chosen }))} />
         </Card>
       </div>
+      {showCs && (
+        <div className={c.two}>
+          <Card title="IC per date, by setting" sub="Across stocks on each rebalance date, averaged per fold. Mean ± 95% CI over folds. Dashed line = 0." source={`${cfg.artifacts.mlPerFold} → ic_cross_sectional`}>
+            <CIChart rows={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.icCs), color: SERIES[i % 5], bold: r.chosen }))} reference={0} referenceLabel="0" />
+          </Card>
+          <Card title="AUC per date, by setting" sub="Across stocks on each rebalance date, averaged per fold. Mean ± 95% CI over folds. Dashed line = random (0.5)." source={`${cfg.artifacts.mlPerFold} → auc_cross_sectional`}>
+            <CIChart rows={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.aucCs), color: SERIES[i % 5], bold: r.chosen }))} reference={0.5} referenceLabel="random 0.5" />
+          </Card>
+        </div>
+      )}
       {(showAuc || rocs.length > 0) && (
         <div className={c.two}>
           {showAuc && (
@@ -373,7 +460,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
       </div>
       <SignalScatterCard cfg={cfg} settings={s} />
       <ConditionalCard settings={s} />
-      <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>
+      {cfg.kind !== "portfolio" && <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>}
     </>
   );
 }
@@ -670,21 +757,21 @@ function InSampleView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           />
         </Card>
         <Card title="Quant metrics" source={`${ch.run.name} metrics`}>
-          <QuantTable run={ch.run} label={ch.label} mode={mode} benchmark="Buy-and-hold" />
+          <QuantTable run={ch.run} label={ch.label} mode={mode} benchmark={bhName(cfg)} />
         </Card>
       </div>
       <Card title="PnL per fold" source={`${ch.run.name} → ${cfg.artifacts.daily}`}>
         <Legend
           items={[
             { label: ch.label, color: STRAT },
-            { label: "Buy-and-hold", color: BENCH },
+            { label: bhName(cfg), color: BENCH },
           ]}
         />
         <GroupBars
           labels={quarters.map((q) => q.label)}
           series={[
             { name: ch.label, values: quarters.map((q) => q.strategy), color: STRAT },
-            { name: "Buy-and-hold", values: quarters.map((q) => q.bench), color: BENCH },
+            { name: bhName(cfg), values: quarters.map((q) => q.bench), color: BENCH },
           ]}
         />
       </Card>
@@ -769,7 +856,8 @@ function FindingsView({ cfg }: { cfg: PathConfig }) {
 }
 
 function AboutView({ cfg, data }: { cfg: PathConfig; data: PathResults }) {
-  const config = parseConfigTag(data.experiment?.tags.config);
+  const configTag = cfg.configTag ?? "config";
+  const config = parseConfigTag(data.experiment?.tags[configTag]);
   return (
     <div className={c.two}>
       <Card title="Setup" source="written with this path's dashboard settings">
@@ -782,7 +870,7 @@ function AboutView({ cfg, data }: { cfg: PathConfig; data: PathResults }) {
           ))}
         </dl>
       </Card>
-      <Card title="MLflow config tag" sub="As logged in the notebook." source={`experiment ${cfg.source?.experiment} → tag config`}>
+      <Card title="MLflow config tag" sub="As logged in the notebook." source={`experiment ${cfg.source?.experiment} → tag ${configTag}`}>
         {config ? (
           <dl className={c.kv}>
             {Object.entries(config).map(([k, v]) => (
@@ -793,7 +881,7 @@ function AboutView({ cfg, data }: { cfg: PathConfig; data: PathResults }) {
             ))}
           </dl>
         ) : (
-          <p className={c.muted}>{data.experiment?.tags.config ?? "Not logged."}</p>
+          <p className={c.muted}>{data.experiment?.tags[configTag] ?? "Not logged."}</p>
         )}
       </Card>
     </div>
@@ -839,12 +927,20 @@ function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: st
         )}
       </div>
       <div className={c.body}>
+        {mode === "gross" && !(data.holdout?.daily ?? data.chosenDaily)?.hasGross && (
+          <p className={c.tableNote}>Gross daily returns aren&apos;t logged for this path yet: charts show net of costs; tables show gross where the metric is logged.</p>
+        )}
         {view === "holdout" && <HoldoutView cfg={cfg} data={data} mode={mode} />}
         {view === "settings" && <SettingsView cfg={cfg} data={data} mode={mode} />}
         {view === "choice" && <ChoiceView cfg={cfg} data={data} />}
         {view === "insample" && <InSampleView cfg={cfg} data={data} mode={mode} />}
         {view === "findings" && <FindingsView cfg={cfg} />}
         {view === "about" && <AboutView cfg={cfg} data={data} />}
+        {cfg.extras?.map((name) => {
+          // Extra components switched on per path in paths.ts; each is defined once in extras.tsx.
+          const extra = EXTRAS[name];
+          return extra && extra.views.includes(view) ? <extra.Component key={name} cfg={cfg} data={data} mode={mode} view={view} /> : null;
+        })}
       </div>
     </>
   );

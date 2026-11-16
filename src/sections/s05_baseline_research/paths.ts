@@ -1,6 +1,11 @@
-// The research paths shown on 05 Baseline Research → Results. One entry per path; a path without
-// `source` shows as "Not run". To add a path: push its MLflow zip, then fill in its entry here.
+// The research paths shown on 05 Baseline Research → Dashboard: the mapper from MLflow experiment
+// names to tabs. Every path reads the latest push of one shared zip (ZIP) and only its own
+// experiment, by name. A path without `source` shows as "Not run". Every path gets the default
+// template; `extras` adds components only that path shows. XGBoost lives in 06 Model Development.
 import type { PathConfig } from "@/features/results/types";
+
+/** The one MLflow zip for this section (mlflow.db + mlruns). Always the latest version is read. */
+const ZIP = "mlflow_baselines.zip";
 
 const DEFAULT_ARTIFACTS: PathConfig["artifacts"] = {
   mlPerFold: "fold_metrics_rebalance.json",
@@ -9,22 +14,23 @@ const DEFAULT_ARTIFACTS: PathConfig["artifacts"] = {
   daily: "outputs.json",
 };
 
-const notRun = (id: string, title: string): PathConfig => ({
+const notRun = (id: string, title: string, experiment: string): PathConfig => ({
   id,
   title,
   tag: "Not run",
   setting: { param: "", name: "Setting", label: (v) => v },
   benchmark: "Buy-and-hold",
   artifacts: DEFAULT_ARTIFACTS,
-  notes: { ruleFixedInAdvance: true, setup: [], tests: [], findings: [], findingsSource: "" },
+  // The experiment name this path will log under; it becomes `source` once it's pushed.
+  notes: { ruleFixedInAdvance: true, setup: [["MLflow experiment", experiment]], tests: [], findings: [], findingsSource: "" },
 });
 
 export const BASELINE_PATHS: PathConfig[] = [
   {
     id: "path_1",
-    title: "Path 1 · Single-stock momentum",
+    title: "P1 · Single-stock momentum",
     tag: "Practice",
-    source: { zip: "mlflow_path_1.zip", experiment: "single_stock_momentum_baseline" },
+    source: { zip: ZIP, experiment: "single_stock_momentum_baseline" },
     setting: { param: "Momentum_period", name: "Lookback", label: (v) => `${v}d` },
     benchmark: "CRISIL buy-and-hold",
     artifacts: DEFAULT_ARTIFACTS,
@@ -123,8 +129,30 @@ export const BASELINE_PATHS: PathConfig[] = [
       },
     },
   },
-  notRun("path_1_multi", "Path 1 · Multi-stock momentum"),
-  notRun("path_2", "Path 2 · Ridge"),
-  notRun("path_3", "Path 3 · Decision Tree"),
-  notRun("xgboost", "XGBoost (final)"),
+  {
+    id: "path_2",
+    title: "P2 · Portfolio momentum",
+    tag: "In progress",
+    source: { zip: ZIP, experiment: "momentum_portfolio_strategy" },
+    setting: { param: "Momentum_period", name: "Lookback", label: (v) => `${v}d` },
+    benchmark: "Equal-weight in-index stocks",
+    kind: "portfolio",
+    configTag: "config_path_2",
+    artifacts: {
+      ...DEFAULT_ARTIFACTS,
+      daily: "portfolio.json",
+      portfolioDetail: "portfolio_detail.json",
+      tests: "tests.json",
+      nullDistributions: "null_distributions.json",
+      rebalanceMetrics: "rebalance_metrics.json",
+      quantileReturns: "quantile_returns.json",
+      stockContribution: "stock_contribution.json",
+    },
+    extras: ["tests", "excess", "breadth", "icPerDate", "quintiles", "contribution"],
+    notes: { ruleFixedInAdvance: false, setup: [], tests: [], findings: [], findingsSource: "" },
+  },
+  notRun("path_3_single", "P3 · Ridge (single stock)", "single_stock_ridge"),
+  notRun("path_3_portfolio", "P3 · Ridge (portfolio)", "portfolio_ridge"),
+  notRun("path_4_single", "P4 · Decision Tree (single stock)", "single_stock_decision_tree"),
+  notRun("path_4_portfolio", "P4 · Random Forest (portfolio)", "portfolio_random_forest"),
 ];

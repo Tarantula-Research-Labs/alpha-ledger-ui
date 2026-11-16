@@ -26,6 +26,10 @@ export interface Fold {
   precision: number | null;
   ic: number | null;
   auc: number | null; // only paths that log an auc column (from Path 1 step 2 on)
+  // Portfolio paths: per rebalance date across stocks, then the fold mean
+  precisionCs: number | null;
+  icCs: number | null;
+  aucCs: number | null;
   baseRate: number | null;
   signals: number | null;
   pnl: number | null;
@@ -40,9 +44,10 @@ function foldLabel(start: string): string {
 }
 
 export function joinFolds(ml: Row[], quant: Row[]): Fold[] {
-  const byFold = new Map(quant.map((q) => [String(q.fold), q]));
+  // Joined on the quarter start: the ML table's label ends at the last rebalance date, the quant one at the last trading day.
+  const byFold = new Map(quant.map((q) => [String(q.fold).slice(0, 10), q]));
   return ml.map((m) => {
-    const q = byFold.get(String(m.fold)) ?? {};
+    const q = byFold.get(String(m.fold).slice(0, 10)) ?? {};
     const [start, end] = String(m.fold).split(" - ");
     return {
       fold: String(m.fold),
@@ -52,6 +57,9 @@ export function joinFolds(ml: Row[], quant: Row[]): Fold[] {
       precision: num(m.precision),
       ic: num(m.ic_spearman),
       auc: num(m.auc),
+      precisionCs: num(m.precision_cross_sectional),
+      icCs: num(m.ic_cross_sectional),
+      aucCs: num(m.auc_cross_sectional),
       baseRate: num(m.base_rate),
       signals: num(m.n_signals),
       pnl: num(q.pnl),
@@ -72,6 +80,7 @@ export interface Daily {
   prediction: (number | null)[];
   score: (number | null)[]; // continuous score for AUC/ROC; missing in Path 1
   rebalance: boolean[];
+  hasGross: boolean;
 }
 
 export function toDaily(rows: Row[]): Daily {
@@ -87,6 +96,31 @@ export function toDaily(rows: Row[]): Daily {
     prediction: rows.map((r) => num(r.predictions)),
     score: rows.map((r) => num(r.score)),
     rebalance: rows.map((r) => Number(r.is_rebalance_date) === 1),
+    hasGross: rows.some((r) => num(r.strategy_returns) !== null),
+  };
+}
+
+/** Portfolio paths: one row per day from portfolio.json (net and benchmark), plus gross from
+ *  portfolio_detail.json when logged. No single price or signal, so the decision metrics come from
+ *  the logged run metrics instead. */
+export function toPortfolioDaily(rows: Row[], detail: Row[]): Daily {
+  const z = (x: unknown) => num(x) ?? 0;
+  const gross = new Map(detail.map((r) => [String(r.datetime).slice(0, 10), num(r.gross_return)]));
+  const dates = rows.map((r) => String(r.datetime).slice(0, 10));
+  const net = rows.map((r) => z(r.strategy_returns_tc));
+  const hasGross = dates.some((d) => isNum(gross.get(d)));
+  return {
+    dates,
+    net,
+    gross: hasGross ? dates.map((d, i) => gross.get(d) ?? net[i]) : net,
+    bench: rows.map((r) => z(r.buy_and_hold)),
+    positions: [],
+    close: [],
+    signal: [],
+    prediction: [],
+    score: [],
+    rebalance: [],
+    hasGross,
   };
 }
 
@@ -163,7 +197,12 @@ export interface SettingResult {
   chosen: boolean;
   folds: Fold[];
   daily: Daily | null;
+  /** Extra tables logged on this run (tests, rebalance metrics, …), by artifacts key. Empty when not logged. */
+  extra: Record<string, Row[]>;
 }
+
+/** Artifacts keys whose tables are loaded for the extras. */
+export const EXTRA_KEYS = ["portfolioDetail", "tests", "nullDistributions", "rebalanceMetrics", "quantileReturns", "stockContribution"] as const;
 
 /** True when a path logs AUC per fold (from Path 1 step 2 on). Path 1 does not. */
 export const hasAuc = (settings: { folds: Fold[] }[]) => settings.some((s) => s.folds.some((f) => isNum(f.auc)));
@@ -195,7 +234,7 @@ export interface PathResults {
   chosen: SettingResult | null;
   chosenDaily: Daily | null;
   chosenYearly: Row[];
-  holdout: { run: MlflowRun; folds: Fold[]; daily: Daily } | null;
+  holdout: { run: MlflowRun; folds: Fold[]; daily: Daily; extra: Record<string, Row[]> } | null;
 }
 
 /** Loads everything one path's dashboard shows, from one exact pushed version of its zip.
@@ -210,6 +249,21 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
       ? get<unknown>(`/runs/${run.run_id}/artifacts/${encodeURIComponent(file)}`).then(tableRows)
       : Promise.resolve([] as Row[]);
 
+  const loadDaily = async (run: MlflowRun): Promise<Daily | null> => {
+    if (cfg.kind === "portfolio") {
+      const [rows, detail] = await Promise.all([art(run, cfg.artifacts.daily), art(run, cfg.artifacts.portfolioDetail)]);
+      return rows.length ? toPortfolioDaily(rows, detail) : null;
+    }
+    const rows = await art(run, cfg.artifacts.daily);
+    return rows.length ? toDaily(rows) : null;
+  };
+
+  const loadExtra = async (run: MlflowRun): Promise<Record<string, Row[]>> => {
+    const keys = EXTRA_KEYS.filter((k) => cfg.artifacts[k]);
+    const tables = await Promise.all(keys.map((k) => art(run, cfg.artifacts[k])));
+    return Object.fromEntries(keys.map((k, i) => [k, tables[i]]));
+  };
+
   const inSample = runs
     .filter((r) => r.tags.stage === "in_sample" && r.params[cfg.setting.param] !== undefined)
     .sort((a, b) => Number(a.params[cfg.setting.param]) - Number(b.params[cfg.setting.param]));
@@ -218,11 +272,7 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
 
   const settings = await Promise.all(
     inSample.map(async (run) => {
-      const [ml, quant, daily] = await Promise.all([
-        art(run, cfg.artifacts.mlPerFold),
-        art(run, cfg.artifacts.quantPerFold),
-        art(run, cfg.artifacts.daily),
-      ]);
+      const [ml, quant, daily, extra] = await Promise.all([art(run, cfg.artifacts.mlPerFold), art(run, cfg.artifacts.quantPerFold), loadDaily(run), loadExtra(run)]);
       const value = run.params[cfg.setting.param];
       return {
         run,
@@ -230,19 +280,21 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
         label: cfg.setting.label(value),
         chosen: run === chosenRun,
         folds: joinFolds(ml, quant),
-        daily: daily.length ? toDaily(daily) : null,
+        daily,
+        extra,
       };
     }),
   );
   const chosenYearly = chosenRun ? await art(chosenRun, cfg.artifacts.yearly) : [];
   let holdout: PathResults["holdout"] = null;
   if (holdoutRun) {
-    const [ml, quant, daily] = await Promise.all([
+    const [ml, quant, daily, extra] = await Promise.all([
       art(holdoutRun, cfg.artifacts.mlPerFold),
       art(holdoutRun, cfg.artifacts.quantPerFold),
-      art(holdoutRun, cfg.artifacts.daily),
+      loadDaily(holdoutRun),
+      loadExtra(holdoutRun),
     ]);
-    holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily: toDaily(daily) };
+    if (daily) holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily, extra };
   }
   return {
     experiment: exps.find((e) => e.name === source.experiment) ?? null,

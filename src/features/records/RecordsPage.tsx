@@ -16,21 +16,39 @@ const STATUS: Record<SyncState, string> = {
   error: "Saved in this browser · sync failed",
 };
 
+/** A tag is "experiment" or "experiment:phase-folder". */
+type Phase = { folder: string; label: string };
+const splitTag = (t: string) => {
+  const [exp, phase] = t.split(":");
+  return { exp, phase: phase ?? "" };
+};
+
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
-export function RecordsPage() {
+export function RecordsPage({ phases }: { phases: Phase[] }) {
   const { records, revs, state, error, storeOk, tagNames, create, update, sync } = useRecords();
   const [openId, setOpenId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [tag, setTag] = useState("");
+  const [fExp, setFExp] = useState("");
+  const [fPhase, setFPhase] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [newExp, setNewExp] = useState("");
+  const [newPhase, setNewPhase] = useState("");
+  const phaseLabel = (folder: string) => phases.find((p) => p.folder === folder)?.label ?? folder;
+  const tagLabel = (t: string) => {
+    const { exp, phase } = splitTag(t);
+    return phase ? `${exp} · ${phaseLabel(phase)}` : exp;
+  };
 
   const list = useMemo(() => {
     const q = query.trim().toLowerCase();
-    return records.filter((x) => (!tag || x.experiments.includes(tag)) && (!q || `${x.title} ${docText(x.content)}`.toLowerCase().includes(q)));
-  }, [records, query, tag]);
+    const tagged = (tags: string[]) =>
+      (!fExp && !fPhase) || tags.map(splitTag).some((t) => (!fExp || t.exp === fExp) && (!fPhase || t.phase === fPhase));
+    return records.filter((x) => tagged(x.experiments) && (!q || `${x.title} ${docText(x.content)}`.toLowerCase().includes(q)));
+  }, [records, query, fExp, fPhase]);
   const open = records.find((x) => x.id === openId) ?? list[0] ?? null;
-  const allTags = useMemo(() => [...new Set([...tagNames, ...records.flatMap((x) => x.experiments)])].sort(), [tagNames, records]);
+  const allExps = useMemo(() => [...new Set([...tagNames, ...records.flatMap((x) => x.experiments.map((t) => splitTag(t).exp))])].sort(), [tagNames, records]);
 
   return (
     <>
@@ -55,18 +73,26 @@ export function RecordsPage() {
           <Button
             variant="primary"
             onClick={() => {
-              setOpenId(create(tag ? [tag] : []));
+              setOpenId(create(fExp ? [fPhase ? `${fExp}:${fPhase}` : fExp] : []));
               setConfirmDelete(false);
             }}
           >
             + New record
           </Button>
           <input className={r.search} type="search" placeholder="Search records" value={query} onChange={(e) => setQuery(e.target.value)} aria-label="Search records" />
-          <select className={r.search} value={tag} onChange={(e) => setTag(e.target.value)} aria-label="Filter by experiment">
+          <select className={r.search} value={fExp} onChange={(e) => setFExp(e.target.value)} aria-label="Filter by experiment">
             <option value="">All experiments</option>
-            {allTags.map((t) => (
+            {allExps.map((t) => (
               <option key={t} value={t}>
                 {t}
+              </option>
+            ))}
+          </select>
+          <select className={r.search} value={fPhase} onChange={(e) => setFPhase(e.target.value)} aria-label="Filter by phase">
+            <option value="">All phases</option>
+            {phases.map((p) => (
+              <option key={p.folder} value={p.folder}>
+                {p.label}
               </option>
             ))}
           </select>
@@ -99,23 +125,54 @@ export function RecordsPage() {
             <>
               <input className={r.title} value={open.title} placeholder="Untitled" onChange={(e) => update(open.id, { title: e.target.value })} aria-label="Title" />
               <div className={r.tags}>
-                <span className={r.tagsLabel}>Experiments:</span>
-                {allTags.map((t) => {
-                  const onIt = open.experiments.includes(t);
-                  return (
-                    <button
-                      key={t}
-                      type="button"
-                      className={r.tag}
-                      aria-pressed={onIt}
-                      onClick={() => update(open.id, { experiments: onIt ? open.experiments.filter((e) => e !== t) : [...open.experiments, t] })}
-                    >
-                      {onIt ? "✓ " : "+ "}
-                      {t}
+                <span className={r.tagsLabel}>Tags:</span>
+                {open.experiments.map((t) => (
+                  <span key={t} className={r.tag} aria-pressed="true">
+                    {tagLabel(t)}
+                    <button type="button" className={r.tagX} aria-label={`Remove tag ${tagLabel(t)}`} onClick={() => update(open.id, { experiments: open.experiments.filter((e) => e !== t) })}>
+                      ×
                     </button>
-                  );
-                })}
-                {!allTags.length && <span className={r.itemMeta}>Experiments appear here once the server has been on.</span>}
+                  </span>
+                ))}
+                {adding ? (
+                  <span className={r.addTag}>
+                    <select className={r.search} value={newExp} onChange={(e) => setNewExp(e.target.value)} aria-label="Experiment">
+                      <option value="">Experiment…</option>
+                      {allExps.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <select className={r.search} value={newPhase} onChange={(e) => setNewPhase(e.target.value)} aria-label="Phase">
+                      <option value="">Whole experiment</option>
+                      {phases.map((p) => (
+                        <option key={p.folder} value={p.folder}>
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button
+                      variant="primary"
+                      disabled={!newExp}
+                      onClick={() => {
+                        const t = newPhase ? `${newExp}:${newPhase}` : newExp;
+                        if (!open.experiments.includes(t)) update(open.id, { experiments: [...open.experiments, t] });
+                        setAdding(false);
+                        setNewPhase("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                    <Button variant="quiet" onClick={() => setAdding(false)}>
+                      Cancel
+                    </Button>
+                  </span>
+                ) : (
+                  <button type="button" className={r.tag} onClick={() => setAdding(true)} disabled={!allExps.length} title={allExps.length ? undefined : "Experiments appear here once the server has been on."}>
+                    + Add tag
+                  </button>
+                )}
               </div>
               <RecordEditor key={`${open.id}:${revs[open.id] ?? 0}`} content={open.content} onChange={(doc) => update(open.id, { content: doc })} />
               <div className={r.footer}>

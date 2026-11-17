@@ -22,7 +22,7 @@ async function forward(req: NextRequest, { params }: { params: Promise<{ path: s
     const res = await fetch(`${API_URL}/${path.join("/")}${req.nextUrl.search}`, {
       method: req.method,
       headers: { "content-type": "application/json", "X-Ledger-Key": API_KEY },
-      body: req.method === "POST" ? await req.text() : undefined,
+      body: req.method === "POST" || req.method === "PUT" ? await req.text() : undefined,
       cache: "no-store",
     });
     // A pushed MLflow version never changes: let the browser keep it (private: only this signed-in browser).
@@ -35,4 +35,4 @@ async function forward(req: NextRequest, { params }: { params: Promise<{ path: s
   }
 }
 
-export { forward as GET, forward as POST, forward as DELETE };
+export { forward as GET, forward as POST, forward as PUT, forward as DELETE };

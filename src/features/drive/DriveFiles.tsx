@@ -20,7 +20,7 @@ function UploadBox({ onUploaded }: { onUploaded: () => void }) {
   const [over, setOver] = useState(false);
   const [uploads, setUploads] = useState<Upload[]>([]);
 
-  async function send(list: FileList | null) {
+  async function send(list: FileList | File[] | null) {
     if (!list || list.length === 0) return;
     const files = Array.from(list);
     setUploads(files.map((f) => ({ name: f.name, state: "uploading" })));
@@ -35,6 +35,31 @@ function UploadBox({ onUploaded }: { onUploaded: () => void }) {
     }
     if (input.current) input.current.value = "";
   }
+
+  // Paste (Ctrl+V) anywhere on this tab: images and files on the clipboard upload like dropped files.
+  // Screenshots arrive as "image.png", so they get a dated name instead.
+  const sendRef = useRef(send);
+  sendRef.current = send;
+  useEffect(() => {
+    function paste(e: ClipboardEvent) {
+      const t = e.target as HTMLElement | null;
+      if (t && (t.closest("input, textarea, [contenteditable=true]") !== null)) return;
+      const files = Array.from(e.clipboardData?.files ?? []);
+      if (!files.length) return;
+      e.preventDefault();
+      const n = new Date();
+      const two = (x: number) => String(x).padStart(2, "0");
+      const stamp = `${n.getFullYear()}${two(n.getMonth() + 1)}${two(n.getDate())}-${two(n.getHours())}${two(n.getMinutes())}${two(n.getSeconds())}`; // local time
+      const named = files.map((f, i) =>
+        /^image\.\w+$/i.test(f.name) || !f.name
+          ? new File([f], `pasted-${stamp}${files.length > 1 ? `-${i + 1}` : ""}.${(f.type.split("/")[1] || "png").replace("jpeg", "jpg")}`, { type: f.type })
+          : f,
+      );
+      void sendRef.current(named);
+    }
+    window.addEventListener("paste", paste);
+    return () => window.removeEventListener("paste", paste);
+  }, []);
 
   function drop(e: DragEvent) {
     e.preventDefault();
@@ -54,7 +79,7 @@ function UploadBox({ onUploaded }: { onUploaded: () => void }) {
         onDragLeave={() => setOver(false)}
         onDrop={drop}
       >
-        <p>Drop files here, or</p>
+        <p>Drop files here, paste an image (Ctrl+V), or</p>
         <Button onClick={() => input.current?.click()}>Choose files</Button>
         <input ref={input} type="file" multiple hidden onChange={(e) => void send(e.target.files)} />
         <p className={d.hint}>Any file type. Spaces and odd characters in the name become “_”. Same name again saves a new version (_v2, _v3…).</p>

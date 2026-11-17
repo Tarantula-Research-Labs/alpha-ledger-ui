@@ -34,6 +34,13 @@ export const StatusIcon = () => (
   </svg>
 );
 
+export const RecordsIcon = () => (
+  <svg {...base}>
+    <path d="M6 3h9l4 4v14H6z" />
+    <path d="M9 11h7M9 15h7M9 7h4" />
+  </svg>
+);
+
 export const DriveIcon = () => (
   <svg {...base}>
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />

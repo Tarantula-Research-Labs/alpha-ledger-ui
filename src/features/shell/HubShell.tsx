@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { LedgerMark } from "@/core/ui/LedgerMark";
-import { DriveIcon, ExperimentsIcon, StatusIcon } from "@/core/ui/icons";
+import { DriveIcon, ExperimentsIcon, RecordsIcon, StatusIcon } from "@/core/ui/icons";
 import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER } from "@/data/LedgerProvider";
 import { ServerDot } from "./ServerDot";
@@ -12,7 +12,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { UserChip } from "./UserChip";
 import s from "./shell.module.css";
 
-// Frame for pages outside any one experiment: the experiments list, the Drive and server status.
+// Frame for pages outside any one experiment: the experiments list, the Drive, server status and research records.
 export function HubShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { theme } = useTheme();
@@ -20,6 +20,7 @@ export function HubShell({ children }: { children: ReactNode }) {
     { href: "/experiments", label: "Experiments", Icon: ExperimentsIcon },
     { href: "/drive", label: "Drive", Icon: DriveIcon },
     { href: "/status", label: "Server status", Icon: StatusIcon },
+    { href: "/records", label: "Research records", Icon: RecordsIcon },
   ];
 
   return (

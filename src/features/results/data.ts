@@ -83,7 +83,7 @@ export interface Daily {
   hasGross: boolean;
 }
 
-export function toDaily(rows: Row[]): Daily {
+export function toDaily(rows: Row[], scoreColumn?: string): Daily {
   const z = (x: unknown) => num(x) ?? 0;
   return {
     dates: rows.map((r) => String(r.datetime).slice(0, 10)),
@@ -92,9 +92,9 @@ export function toDaily(rows: Row[]): Daily {
     bench: rows.map((r) => z(r.log_returns)),
     positions: rows.map((r) => z(r.positions)),
     close: rows.map((r) => z(r.close)),
-    signal: rows.map((r) => num(r.backward_signal)),
+    signal: rows.map((r) => num(r[scoreColumn ?? "backward_signal"])),
     prediction: rows.map((r) => num(r.predictions)),
-    score: rows.map((r) => num(r.score)),
+    score: rows.map((r) => num(r[scoreColumn ?? "score"])),
     rebalance: rows.map((r) => Number(r.is_rebalance_date) === 1),
     hasGross: rows.some((r) => num(r.strategy_returns) !== null),
   };
@@ -199,10 +199,46 @@ export interface SettingResult {
   daily: Daily | null;
   /** Extra tables logged on this run (tests, rebalance metrics, …), by artifacts key. Empty when not logged. */
   extra: Record<string, Row[]>;
+  /** Daily results of the run named in this run's `compared_with_run` tag (e.g. momentum 22d), when set. */
+  compared?: Daily | null;
+}
+
+/** A run's setting: its value (params joined with "|") and label. */
+export function settingOf(cfg: PathConfig, run: MlflowRun): { value: string; label: string } | null {
+  const keys = cfg.setting.params ?? [cfg.setting.param];
+  const vals = keys.map((k) => run.params[k]);
+  if (vals.some((v) => v === undefined)) return null;
+  const value = vals.join("|");
+  return { value, label: cfg.setting.label(value) };
+}
+
+/** Order settings by their params, numerically where possible. */
+function compareSettings(a: string, b: string): number {
+  const x = a.split("|");
+  const y = b.split("|");
+  for (let i = 0; i < x.length; i++) {
+    const d = Number(x[i]) - Number(y[i]);
+    if (d) return d;
+    if (Number.isNaN(d) && x[i] !== y[i]) return x[i].localeCompare(y[i]);
+  }
+  return 0;
 }
 
 /** Artifacts keys whose tables are loaded for the extras. */
-export const EXTRA_KEYS = ["portfolioDetail", "tests", "nullDistributions", "rebalanceMetrics", "quantileReturns", "stockContribution"] as const;
+export const EXTRA_KEYS = [
+  "portfolioDetail",
+  "tests",
+  "nullDistributions",
+  "rebalanceMetrics",
+  "quantileReturns",
+  "stockContribution",
+  "mlPerFoldAll",
+  "trainTest",
+  "coefficients",
+  "comparison",
+  "regimeReturns",
+  "featureIc",
+] as const;
 
 /** True when a path logs AUC per fold (from Path 1 step 2 on). Path 1 does not. */
 export const hasAuc = (settings: { folds: Fold[] }[]) => settings.some((s) => s.folds.some((f) => isNum(f.auc)));
@@ -234,14 +270,33 @@ export interface PathResults {
   chosen: SettingResult | null;
   chosenDaily: Daily | null;
   chosenYearly: Row[];
-  holdout: { run: MlflowRun; folds: Fold[]; daily: Daily; extra: Record<string, Row[]> } | null;
+  holdout: { run: MlflowRun; folds: Fold[]; daily: Daily; extra: Record<string, Row[]>; compared?: Daily | null } | null;
+  /** Runs tagged stage=exploratory (e.g. designed after the holdout): shown apart, never used for selection. */
+  exploratory: MlflowRun[];
+}
+
+/** At most `n` requests at once, so a path with many runs (e.g. 28 settings) doesn't flood the server. */
+function limited(get: Getter, n = 8): Getter {
+  let active = 0;
+  const queue: (() => void)[] = [];
+  return async <T,>(path: string) => {
+    if (active >= n) await new Promise<void>((go) => queue.push(go));
+    active++;
+    try {
+      return await get<T>(path);
+    } finally {
+      active--;
+      queue.shift()?.();
+    }
+  };
 }
 
 /** Loads everything one path's dashboard shows, from one exact pushed version of its zip.
  *  An exact version never changes, so the browser may keep these replies (the /api proxy marks them
  *  "never changes"). `pushed` (the push time) makes a re-push after a delete, which reuses the
  *  version number, a different address, so a stale copy can never be shown. */
-async function fetchPathResults(cfg: PathConfig, source: { zip: string; experiment: string }, get: Getter): Promise<PathResults> {
+async function fetchPathResults(cfg: PathConfig, source: { zip: string; experiment: string }, getAll: Getter): Promise<PathResults> {
+  const get = limited(getAll);
   const runs = await get<MlflowRun[]>(`/experiments/${encodeURIComponent(source.experiment)}/runs`);
   const exps = await get<MlflowExperiment[]>(`/experiments`);
   const art = (run: MlflowRun, file: string | undefined) =>
@@ -255,7 +310,18 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
       return rows.length ? toPortfolioDaily(rows, detail) : null;
     }
     const rows = await art(run, cfg.artifacts.daily);
-    return rows.length ? toDaily(rows) : null;
+    return rows.length ? toDaily(rows, cfg.scoreColumn) : null;
+  };
+  // The run this one is compared with (tag compared_with_run, e.g. path 1's momentum 22d), read by run id.
+  const loadCompared = async (run: MlflowRun): Promise<Daily | null> => {
+    const id = run.tags.compared_with_run;
+    if (!id || !/^[0-9a-f]{32}$/.test(id)) return null;
+    try {
+      const rows = tableRows(await get<unknown>(`/runs/${id}/artifacts/${encodeURIComponent(cfg.artifacts.daily)}`));
+      return rows.length ? toDaily(rows) : null;
+    } catch {
+      return null;
+    }
   };
 
   const loadExtra = async (run: MlflowRun): Promise<Record<string, Row[]>> => {
@@ -265,36 +331,35 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
   };
 
   const inSample = runs
-    .filter((r) => r.tags.stage === "in_sample" && r.params[cfg.setting.param] !== undefined)
-    .sort((a, b) => Number(a.params[cfg.setting.param]) - Number(b.params[cfg.setting.param]));
+    .filter((r) => r.tags.stage === "in_sample" && settingOf(cfg, r))
+    .sort((a, b) => compareSettings(settingOf(cfg, a)!.value, settingOf(cfg, b)!.value));
   const holdoutRun = runs.find((r) => r.tags.stage === "holdout") ?? null;
   const chosenRun = inSample.find((r) => r.tags.chosen === "true") ?? null;
 
   const settings = await Promise.all(
     inSample.map(async (run) => {
-      const [ml, quant, daily, extra] = await Promise.all([art(run, cfg.artifacts.mlPerFold), art(run, cfg.artifacts.quantPerFold), loadDaily(run), loadExtra(run)]);
-      const value = run.params[cfg.setting.param];
-      return {
-        run,
-        value,
-        label: cfg.setting.label(value),
-        chosen: run === chosenRun,
-        folds: joinFolds(ml, quant),
-        daily,
-        extra,
-      };
+      const [ml, quant, daily, extra, compared] = await Promise.all([
+        art(run, cfg.artifacts.mlPerFold),
+        art(run, cfg.artifacts.quantPerFold),
+        loadDaily(run),
+        loadExtra(run),
+        loadCompared(run),
+      ]);
+      const { value, label } = settingOf(cfg, run)!;
+      return { run, value, label, chosen: run === chosenRun, folds: joinFolds(ml, quant), daily, extra, compared };
     }),
   );
   const chosenYearly = chosenRun ? await art(chosenRun, cfg.artifacts.yearly) : [];
   let holdout: PathResults["holdout"] = null;
   if (holdoutRun) {
-    const [ml, quant, daily, extra] = await Promise.all([
+    const [ml, quant, daily, extra, compared] = await Promise.all([
       art(holdoutRun, cfg.artifacts.mlPerFold),
       art(holdoutRun, cfg.artifacts.quantPerFold),
       loadDaily(holdoutRun),
       loadExtra(holdoutRun),
+      loadCompared(holdoutRun),
     ]);
-    if (daily) holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily, extra };
+    if (daily) holdout = { run: holdoutRun, folds: joinFolds(ml, quant), daily, extra, compared };
   }
   return {
     experiment: exps.find((e) => e.name === source.experiment) ?? null,
@@ -303,6 +368,7 @@ async function fetchPathResults(cfg: PathConfig, source: { zip: string; experime
     chosenDaily: settings.find((s) => s.chosen)?.daily ?? null,
     chosenYearly,
     holdout,
+    exploratory: runs.filter((r) => r.tags.stage === "exploratory"),
   };
 }
 

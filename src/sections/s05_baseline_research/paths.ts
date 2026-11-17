@@ -152,6 +152,35 @@ export const BASELINE_PATHS: PathConfig[] = [
     notes: { ruleFixedInAdvance: false, setup: [], tests: [], findings: [], findingsSource: "" },
   },
   // P3 and P4: one experiment each, two models compared in sample (both logged); only the chosen one gets an OOS run.
-  notRun("path_3", "P3 · Single-stock ML", "single_stock_ml"),
+  {
+    id: "path_3",
+    title: "P3 · Single-stock logistic regression",
+    tag: "In progress",
+    source: { zip: ZIP, experiment: "single_stock_logistic_regression" },
+    // 28 settings: C × l1_ratio. Labels come from the params, never from a momentum period.
+    setting: {
+      param: "C",
+      params: ["C", "l1_ratio"],
+      name: "Setting",
+      label: (v) => {
+        const [cv, l1] = v.split("|");
+        return `C=${cv} · l1=${l1}`;
+      },
+    },
+    scoreColumn: "probability", // IC, AUC and ROC use the model's probability (paths 1 and 2 use the momentum value)
+    benchmark: "Buy-and-hold (same stock)",
+    artifacts: {
+      ...DEFAULT_ARTIFACTS,
+      mlPerFoldAll: "fold_metrics.json",
+      tests: "tests.json",
+      trainTest: "train_test_metrics.json",
+      coefficients: "coefficients.json",
+      comparison: "comparison_vs_momentum.json",
+      regimeReturns: "regime_returns.json",
+      featureIc: "feature_ic.json",
+    },
+    extras: ["hyperGrid", "groupedCI", "trainTest", "coefficients", "tests", "vsMomentum", "regimes", "featureIc"],
+    notes: { ruleFixedInAdvance: true, setup: [], tests: [], findings: [], findingsSource: "" },
+  },
   notRun("path_4", "P4 · Portfolio ML", "portfolio_ml"),
 ];

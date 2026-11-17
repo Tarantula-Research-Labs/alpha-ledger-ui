@@ -9,7 +9,11 @@ export interface PathConfig {
   /** Where the runs are: the pushed zip and the MLflow experiment inside it. Missing = not run yet. */
   source?: { zip: string; experiment: string };
   /** The setting that differs between in-sample runs, e.g. the momentum lookback. */
-  setting: { param: string; name: string; label: (value: string) => string };
+  /** The setting that differs between in-sample runs. One param (e.g. Momentum_period), or several
+   *  (`params`, e.g. ["C", "l1_ratio"]); with several, `label` gets the values joined with "|". */
+  setting: { param: string; params?: string[]; name: string; label: (value: string) => string };
+  /** Column of the daily table used as the score for IC, AUC and ROC (default backward_signal for IC, score for AUC). */
+  scoreColumn?: string;
   /** Extra components only this path shows (new tests, new CI charts…), by name from the EXTRAS registry
    *  in ResultsView. Every path gets the default template; extras are added on top. */
   extras?: string[];
@@ -31,6 +35,12 @@ export interface PathConfig {
     rebalanceMetrics?: string; // datetime, fold, …, ic, auc, names_held_after, n_buys, n_sells, turnover, cost_drag
     quantileReturns?: string; // datetime, quantile, n_stocks, mean_signal, mean_held_return, hit_rate
     stockContribution?: string; // ticker, days_held, n_trades, contribution, gross_contribution, cost_contribution
+    mlPerFoldAll?: string; // per-fold ML metrics on all days (fold_metrics.json), for the grouped CI charts
+    trainTest?: string; // fold, days, train_precision, test_precision, train_base_rate, test_base_rate
+    coefficients?: string; // fold, feature, coefficient, intercept
+    comparison?: string; // metric, days, model_mean, model_ci_low, model_ci_high, model_pooled, momentum_*, paired_p, n
+    regimeReturns?: string; // month, regime, buy_and_hold, momentum, model
+    featureIc?: string; // feature, period, ic
     daily: string; // datetime, close, backward_signal, predictions, log_returns, is_rebalance_date, positions, strategy_returns, strategy_returns_tc
   };
   /** Facts not stored in MLflow, shown as written. */

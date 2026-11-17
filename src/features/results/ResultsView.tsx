@@ -8,13 +8,13 @@ import { GearSpinner } from "@/core/ui/GearSpinner";
 import { BoxCI, CIChart, EquityChart, FoldScatter, GroupBars, Heatmap, Legend, NotComputed, PairBars, RocChart, f2, f3, pct } from "./charts";
 import { ShareButton } from "@/features/share/ShareButton";
 import { EXTRAS } from "./extras";
-import { conditionalProbabilities, curves, decisionMetrics, hasAuc, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
+import { conditionalProbabilities, curves, decisionMetrics, hasAuc, settingOf, parseConfigTag, periodReturns, usePathResults, type PathResults, type SettingResult, type Snapshot } from "./data";
 import { corr, isNum, tCI } from "./stats";
 import type { ChoiceTable, MlflowRun, PathConfig } from "./types";
 import c from "./results.module.css";
 
 type Mode = "net" | "gross";
-type View = "holdout" | "settings" | "choice" | "insample" | "findings" | "about";
+type View = "holdout" | "settings" | "choice" | "insample" | "vsmomentum" | "findings" | "about";
 
 
 
@@ -121,7 +121,7 @@ function QuantTable({ run, label, mode, benchmark }: { run: MlflowRun; label: st
 function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; mode: Mode }) {
   const h = data.holdout;
   if (!h) return <EmptyState title="The holdout hasn't been run for this path yet." />;
-  const label = cfg.setting.label(h.run.params[cfg.setting.param] ?? "");
+  const label = settingOf(cfg, h.run)?.label ?? data.chosen?.label ?? h.run.name;
   const cv = curves(h.daily, mode);
   const dm = decisionMetrics(h.daily);
   const precision = metric(h.run, "rebalance_precision") ?? dm.precision;
@@ -232,6 +232,25 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
                   <td>random 0.500</td>
                 </tr>
               )}
+              {/* Logged by ML paths (from path 3 on); hidden when not logged */}
+              {(
+                [
+                  ["Precision, all days", "precision_all_days", base, `base rate ${f3(base)}`, f3],
+                  ["IC, all days", "ic", 0, "0", (x: number | null) => (isNum(x) ? (x >= 0 ? "+" : "") + x.toFixed(3) : "–")],
+                  ["IC, rebalance days (logged)", "rebalance_ic", 0, "0", (x: number | null) => (isNum(x) ? (x >= 0 ? "+" : "") + x.toFixed(3) : "–")],
+                  ["AUC, all days", "auc", 0.5, "random 0.500", f3],
+                  ["AUC, rebalance days (logged)", "rebalance_auc", 0.5, "random 0.500", f3],
+                  ["Train − test precision gap", "train_test_gap", null, "close to 0 = no overfitting", f3],
+                ] as [string, string, number | null, string, (x: number | null) => string][]
+              )
+                .filter(([, k]) => isNum(metric(h.run, k)))
+                .map(([name, k, ref, refText, f]) => (
+                  <tr key={k}>
+                    <td>{name}</td>
+                    <td className={isNum(ref) ? verdict(metric(h.run, k), ref, "higher") : ""}>{f(metric(h.run, k))}</td>
+                    <td>{refText}</td>
+                  </tr>
+                ))}
               <tr>
                 <td>Decisions / long calls</td>
                 <td>
@@ -265,7 +284,69 @@ function HoldoutView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults; 
           ]}
         />
       </Card>
+      <PassChecks run={h.run} />
+      <ExploratoryRuns runs={data.exploratory} />
     </>
+  );
+}
+
+/** The holdout's pass / fail tags (pass_*), as logged in the notebook. */
+function PassChecks({ run }: { run: MlflowRun }) {
+  const tags = Object.entries(run.tags).filter(([k]) => k.startsWith("pass_"));
+  if (!tags.length) return null;
+  const ok = (v: string) => ["true", "pass", "yes"].includes(v.toLowerCase());
+  const bad = (v: string) => ["false", "fail", "no"].includes(v.toLowerCase());
+  return (
+    <Card title="Holdout checks" sub="Pass / fail as recorded on the holdout run." source={`${run.name} tags pass_*`}>
+      <div className={c.checks}>
+        {tags.map(([k, v]) => (
+          <span key={k} className={ok(v) ? c.pillGood : bad(v) ? c.pillBad : c.pill}>
+            {ok(v) ? "✓" : bad(v) ? "✗" : "•"} {k.replace(/^pass_/, "").replace(/_/g, " ")}
+          </span>
+        ))}
+      </div>
+    </Card>
+  );
+}
+
+/** Runs designed after the holdout was seen: shown for the record, never used for selection or pass / fail. */
+function ExploratoryRuns({ runs }: { runs: MlflowRun[] }) {
+  if (!runs.length) return null;
+  const rows: [string, string, (x: number | null) => string][] = [
+    ["PnL", "pnl", pct],
+    ["Sharpe", "sharpe", f2],
+    ["Max drawdown", "max_drawdown", pct],
+    ["Precision (rebalance)", "rebalance_precision", f3],
+  ];
+  return (
+    <Card title="Exploratory runs" sub="Designed after the holdout was seen. Shown for the record only: not part of the selection or the pass / fail result." source="runs tagged stage = exploratory">
+      <div className={c.scroll}>
+        <table className={c.table}>
+          <thead>
+            <tr>
+              <th scope="col">Run</th>
+              {rows.map(([n]) => (
+                <th key={n} scope="col">
+                  {n}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {runs.map((r) => (
+              <tr key={r.run_id}>
+                <td>
+                  {r.name} <span className={c.pillWarn}>post-holdout, exploratory</span>
+                </td>
+                {rows.map(([n, k, f]) => (
+                  <td key={n}>{f(metric(r, k))}</td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Card>
   );
 }
 
@@ -322,6 +403,9 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
   const quarters = s[0].folds.map((f) => f.label);
   const showAuc = hasAuc(s);
   const showCs = s.some((r) => r.folds.some((f) => isNum(f.icCs) || isNum(f.aucCs)));
+  // Large grids (e.g. 28 hyperparameter settings): per-setting charts become unreadable; the path's
+  // extras (grid heatmap, grouped CI charts) show them instead.
+  const many = s.length > 8;
   const portfolio = cfg.kind === "portfolio";
   const rocs = s.map((r, i) => ({ name: r.label, points: r.daily ? decisionMetrics(r.daily).roc : [], color: SERIES[i % 5], bold: r.chosen })).filter((x) => x.points.length);
   return (
@@ -329,7 +413,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
       <p className={c.lead}>
         Every {cfg.setting.name.toLowerCase()} side by side, on the same {quarters.length} folds. Precision is scored on rebalance decisions.
       </p>
-      <Card title="All settings" source={`${cfg.setting.param} runs: metrics, ${cfg.artifacts.mlPerFold}, ${cfg.artifacts.quantPerFold}`}>
+      <Card title="All settings" source={`${(cfg.setting.params ?? [cfg.setting.param]).join(", ")} runs: metrics, ${cfg.artifacts.mlPerFold}, ${cfg.artifacts.quantPerFold}`}>
         <div className={c.scroll}>
           <table className={c.table}>
             <thead>
@@ -417,6 +501,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           </table>
         </div>
       </Card>
+      {!many && (
       <div className={c.two}>
         <Card title="Precision by setting" sub="Mean ± 95% CI over folds. Dashed line = base rate." source={`${cfg.artifacts.mlPerFold} → precision`}>
           <CIChart rows={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.precision), color: SERIES[i % 5], bold: r.chosen }))} reference={base} referenceLabel={`base rate ${f3(base)}`} />
@@ -425,7 +510,8 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.pnl), color: SERIES[i % 5], bold: r.chosen }))} />
         </Card>
       </div>
-      {showCs && (
+      )}
+      {!many && showCs && (
         <div className={c.two}>
           <Card title="IC per date, by setting" sub="Across stocks on each rebalance date, averaged per fold. Mean ± 95% CI over folds. Dashed line = 0." source={`${cfg.artifacts.mlPerFold} → ic_cross_sectional`}>
             <CIChart rows={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.icCs), color: SERIES[i % 5], bold: r.chosen }))} reference={0} referenceLabel="0" />
@@ -435,7 +521,7 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           </Card>
         </div>
       )}
-      {(showAuc || rocs.length > 0) && (
+      {!many && (showAuc || rocs.length > 0) && (
         <div className={c.two}>
           {showAuc && (
             <Card title="AUC by setting" sub="Mean ± 95% CI over folds. Dashed line = random (0.5)." source={`${cfg.artifacts.mlPerFold} → auc`}>
@@ -450,6 +536,11 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           )}
         </div>
       )}
+      {many ? (
+        <Card title="PnL heatmap" sub="Setting × fold. A row that stays green is stable." source={`${cfg.artifacts.quantPerFold} → pnl`}>
+          <Heatmap columns={quarters} rows={s.map((r) => ({ label: r.label, values: r.folds.map((f) => f.pnl), bold: r.chosen }))} />
+        </Card>
+      ) : (
       <div className={c.two}>
         <Card title="Sharpe per fold" sub="Box = spread across folds; red dot and bar = mean ± 95% CI." source={`${cfg.artifacts.quantPerFold} → sharpe`}>
           <BoxCI groups={s.map((r, i) => ({ label: r.label, values: r.folds.map((f) => f.sharpe), color: SERIES[i % 5], bold: r.chosen }))} fmt={(x) => x.toFixed(0)} valueFmt={(x) => x.toFixed(2)} />
@@ -458,8 +549,9 @@ function SettingsView({ cfg, data, mode }: { cfg: PathConfig; data: PathResults;
           <Heatmap columns={quarters} rows={s.map((r) => ({ label: r.label, values: r.folds.map((f) => f.pnl), bold: r.chosen }))} />
         </Card>
       </div>
-      <SignalScatterCard cfg={cfg} settings={s} />
-      <ConditionalCard settings={s} />
+      )}
+      {!many && <SignalScatterCard cfg={cfg} settings={s} />}
+      {!many && <ConditionalCard settings={s} />}
       {cfg.kind !== "portfolio" && <NotComputed title="Sharpe bootstrap CI and HAC CI on mean daily return">Planned from the multi-stock baseline onward.</NotComputed>}
     </>
   );
@@ -895,6 +987,7 @@ const VIEWS: { id: View; label: (chosen: string) => string }[] = [
   { id: "settings", label: () => "Settings tried" },
   { id: "choice", label: () => "The choice" },
   { id: "insample", label: (ch) => `${ch} in sample` },
+  { id: "vsmomentum", label: () => "vs Momentum" }, // only for paths with the vsMomentum extra
   { id: "findings", label: () => "Findings" },
   { id: "about", label: () => "About this path" },
 ];
@@ -913,7 +1006,7 @@ function PathBody({ experiment, section, cfg, mode, snapshot }: { experiment: st
   return (
     <>
       <div className={c.views} role="tablist" aria-label="Result sections">
-        {VIEWS.map((v) => (
+        {VIEWS.filter((v) => v.id !== "vsmomentum" || cfg.extras?.includes("vsMomentum")).map((v) => (
           <button key={v.id} type="button" role="tab" aria-selected={view === v.id} className={c.viewBtn} onClick={() => setView(v.id)}>
             {v.label(data.chosen?.label ?? "Chosen")}
           </button>

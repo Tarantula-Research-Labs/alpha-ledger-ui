@@ -194,12 +194,13 @@ export function GroupBars({
       {labels.map((lab, g) => (
         <g key={lab}>
           {series.map((s, j) => {
-            const v = s.values[g] ?? 0;
+            const v = s.values[g];
+            if (!isNum(v)) return null; // missing value: no bar
             const y0 = Y(0);
             const y1 = Y(v);
             return (
               <rect key={s.name} x={L + gw * g + gw * 0.14 + bw * j} y={Math.min(y0, y1)} width={Math.max(1, bw - 1.5)} height={Math.max(1, Math.abs(y1 - y0))} rx={1.5} fill={s.color}>
-                <title>{`${s.name} · ${lab}: ${pct(v)}`}</title>
+                <title>{`${s.name} · ${lab}: ${fmt(v)}`}</title>
               </rect>
             );
           })}
@@ -220,16 +221,20 @@ export function CIChart({
   reference,
   referenceLabel,
   fmt = f3,
+  rowH = 34,
+  labelW = 50,
 }: {
   rows: { label: string; values: (number | null)[]; color: string; bold?: boolean }[];
   reference?: number | null;
   referenceLabel?: string;
   fmt?: (x: number) => string;
+  rowH?: number;
+  labelW?: number;
 }) {
   const w = 560;
-  const L = 50;
+  const L = labelW;
   const R = 150;
-  const h = 34 * rows.length + 34;
+  const h = rowH * rows.length + 34;
   const cis = rows.map((r) => tCI(r.values));
   const [lo, hi] = extent(cis.flatMap((x) => [x.lo, x.hi]), isNum(reference) ? [reference] : [], 0.08);
   const X = scale(lo, hi, L, w - R);
@@ -253,7 +258,7 @@ export function CIChart({
       )}
       {rows.map((r, i) => {
         const ci = cis[i];
-        const y = 28 + i * 34;
+        const y = 28 + i * rowH;
         const ok = isNum(ci.lo) && isNum(ci.hi);
         return (
           <g key={r.label}>
@@ -272,7 +277,7 @@ export function CIChart({
             <text x={w - R + 12} y={y + 4}>
               {`${fmt(ci.m)} [${fmt(ci.lo)}, ${fmt(ci.hi)}]`}
             </text>
-            <rect x={0} y={y - 15} width={w} height={30} fill="transparent" />
+            <rect x={0} y={y - rowH / 2} width={w} height={rowH} fill="transparent" />
           </g>
         );
       })}

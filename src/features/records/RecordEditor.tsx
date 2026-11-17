@@ -3,11 +3,10 @@
 // Rich editor for one research record (TipTap): headings, bold/italic/strike, lists, checkboxes,
 // links and code blocks. Normal cut, copy and paste work as in any editor.
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import TaskItem from "@tiptap/extension-task-item";
-import TaskList from "@tiptap/extension-task-list";
 import Placeholder from "@tiptap/extension-placeholder";
 import { useEffect, useRef } from "react";
+import { EXTENSIONS } from "./extensions";
+import { looksLikeMarkdown, markdownToHtml } from "./markdown";
 import r from "./records.module.css";
 
 function Toolbar({ editor }: { editor: Editor }) {
@@ -67,23 +66,31 @@ function Toolbar({ editor }: { editor: Editor }) {
 export function RecordEditor({ content, onChange }: { content: Record<string, unknown>; onChange: (doc: Record<string, unknown>) => void }) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const latest = useRef(onChange);
+  const editorRef = useRef<Editor | null>(null);
   latest.current = onChange;
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: [
-      StarterKit.configure({ link: { openOnClick: false, autolink: true } }),
-      TaskList,
-      TaskItem.configure({ nested: true }),
-      Placeholder.configure({ placeholder: "Write your findings, ideas, to-dos…" }),
-    ],
+    extensions: [...EXTENSIONS, Placeholder.configure({ placeholder: "Write your findings, ideas, to-dos…" })],
     content,
-    editorProps: { attributes: { class: r.prose, "aria-label": "Record text" } },
+    editorProps: {
+      attributes: { class: r.prose, "aria-label": "Record text" },
+      // Pasted Markdown becomes formatted text (inside a code block it stays as typed).
+      handlePaste: (view, event) => {
+        const text = event.clipboardData?.getData("text/plain") ?? "";
+        if (!editorRef.current || view.state.selection.$from.parent.type.name === "codeBlock" || !looksLikeMarkdown(text)) return false;
+        editorRef.current.commands.insertContent(markdownToHtml(text));
+        return true;
+      },
+    },
     onUpdate: ({ editor: e }) => {
       // Saved half a second after you stop typing.
       if (timer.current) clearTimeout(timer.current);
       timer.current = setTimeout(() => latest.current(e.getJSON() as Record<string, unknown>), 500);
     },
   });
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
   // Save what's pending when switching records or leaving the page.
   useEffect(
     () => () => {

@@ -151,8 +151,7 @@ export const BASELINE_PATHS: PathConfig[] = [
     extras: ["tests", "excess", "breadth", "icPerDate", "quintiles", "contribution"],
     notes: { ruleFixedInAdvance: false, setup: [], tests: [], findings: [], findingsSource: "" },
   },
-  notRun("path_3_single", "P3 · Ridge (single stock)", "single_stock_ridge"),
-  notRun("path_3_portfolio", "P3 · Ridge (portfolio)", "portfolio_ridge"),
-  notRun("path_4_single", "P4 · Decision Tree (single stock)", "single_stock_decision_tree"),
-  notRun("path_4_portfolio", "P4 · Random Forest (portfolio)", "portfolio_random_forest"),
+  // P3 and P4: one experiment each, two models compared in sample (both logged); only the chosen one gets an OOS run.
+  notRun("path_3", "P3 · Single-stock ML", "single_stock_ml"),
+  notRun("path_4", "P4 · Portfolio ML", "portfolio_ml"),
 ];

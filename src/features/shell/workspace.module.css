@@ -2,7 +2,7 @@
 
 .frame {
   display: grid;
-  grid-template-columns: 272px minmax(0, 1fr);
+  grid-template-columns: 68px 272px minmax(0, 1fr); /* strip, sections, content */
   min-height: 100dvh;
   background: var(--texture), var(--app-bg);
   color: var(--text);
@@ -241,7 +241,7 @@
 
 @media (max-width: 960px) {
   .frame {
-    grid-template-columns: minmax(0, 1fr);
+    grid-template-columns: 68px minmax(0, 1fr);
   }
   .sidebar {
     position: fixed;
@@ -341,4 +341,12 @@
 [data-theme] .item[data-state="completed"] svg {
   color: color-mix(in srgb, var(--muted) 65%, transparent);
   filter: none;
+}
+
+/* Phones: the strip becomes a bottom bar */
+@media (max-width: 760px) {
+  .frame {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 64px;
+  }
 }

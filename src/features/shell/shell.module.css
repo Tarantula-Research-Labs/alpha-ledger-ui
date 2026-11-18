@@ -250,3 +250,142 @@
   color: var(--text);
   border-color: transparent;
 }
+
+/* ---------- Hub left strip (icons + tooltips; bottom bar on phones) ---------- */
+.hubStrip {
+  display: grid;
+  grid-template-columns: 68px minmax(0, 1fr);
+}
+.strip {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  height: 100dvh;
+  padding: 14px 0;
+  border-right: 1px solid var(--line);
+  background: var(--hubbar-bg);
+}
+.stripLogo {
+  display: grid;
+  place-items: center;
+  margin-bottom: 14px;
+}
+.stripLink {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  color: var(--muted);
+}
+.stripLink:hover,
+.stripLink:focus-visible {
+  color: var(--accent-hi);
+  background: var(--nav-hover);
+}
+.stripLink[aria-current="page"] {
+  color: var(--text);
+  background: var(--nav-active-bg);
+  border-color: var(--line-strong);
+}
+.tip {
+  position: absolute;
+  left: calc(100% + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 5px 10px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s;
+  z-index: 30;
+}
+.stripLink:hover .tip,
+.stripLink:focus-visible .tip {
+  opacity: 1;
+}
+.stripSep {
+  width: 28px;
+  height: 1px;
+  margin: 6px 0;
+  background: var(--line);
+}
+.stripDot {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--faint);
+}
+.stripDot[data-state="up"] {
+  background: var(--green);
+}
+.stripDot[data-state="down"] {
+  background: var(--red);
+}
+.stripFill {
+  flex: 1;
+}
+.stripTools {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+.stripTools .themeToggle {
+  flex-direction: column;
+}
+.stripTools .userName {
+  display: none;
+}
+.hubStrip .hubMain {
+  width: 100%;
+}
+
+@media (max-width: 760px) {
+  .hubStrip {
+    grid-template-columns: minmax(0, 1fr);
+    padding-bottom: 64px;
+  }
+  .strip {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    flex-direction: row;
+    justify-content: space-around;
+    height: 60px;
+    padding: 0 8px;
+    border-right: 0;
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+  }
+  .stripLogo,
+  .stripSep,
+  .stripFill,
+  .tip {
+    display: none;
+  }
+  .stripTools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .stripTools .themeToggle {
+    flex-direction: row;
+  }
+}

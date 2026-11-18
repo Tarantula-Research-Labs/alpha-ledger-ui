@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { ApiError, apiRequest } from "@/core/api";
 import { formatDate } from "@/core/format";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { LedgerMark } from "@/core/ui/LedgerMark";
+import { LedgerLogo } from "@/core/ui/LedgerMark";
 import type { Snapshot } from "@/features/results/data";
 import { ResultsView } from "@/features/results/ResultsView";
 import type { PathConfig } from "@/features/results/types";
@@ -43,8 +43,7 @@ export function SharePage({ code, resolvePath }: { code: string; resolvePath: (s
   return (
     <div className={s.page} data-wide-page>
       <header className={s.top}>
-        <LedgerMark size={26} />
-        <span className={s.brand}>Alpha Ledger</span>
+        <LedgerLogo height={34} />
         <span className={s.badge}>Shared report · read-only</span>
         {meta && (
           <span className={s.dates}>

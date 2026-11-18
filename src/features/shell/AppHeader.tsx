@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LedgerMark } from "@/core/ui/LedgerMark";
+import { LedgerLogo, LedgerMark } from "@/core/ui/LedgerMark";
 import { ServerDot } from "./ServerDot";
 import { ThemeToggle } from "./ThemeToggle";
 import { UserChip } from "./UserChip";
@@ -14,9 +14,11 @@ export function AppHeader({ before, middle, extra }: { before?: ReactNode; middl
   return (
     <header className={s.appBar}>
       {before}
-      <Link href="/experiments" className={s.wordmark}>
-        <LedgerMark size={30} />
-        <span className={s.wordmarkText}>Alpha Ledger</span>
+      <Link href="/experiments" className={s.wordmark} aria-label="Alpha-Ledger, experiments">
+        <LedgerLogo height={42} className={s.logoFull} />
+        <span className={s.logoIcon}>
+          <LedgerMark size={30} />
+        </span>
       </Link>
       <div className={s.appBarMid}>{middle}</div>
       <div className={s.appBarRight}>

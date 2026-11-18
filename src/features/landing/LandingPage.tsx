@@ -3,7 +3,7 @@
 import Link from "next/link";
 import type { SectionMeta } from "@/core/sections";
 import { StatusMark, VersionTicks, identClass } from "@/core/ui";
-import { LedgerMark } from "@/core/ui/LedgerMark";
+import { LedgerLogo, LedgerMark } from "@/core/ui/LedgerMark";
 import { CodeIcon, LineageIcon, LockIcon, SectionIcon, TrendIcon, VersionsIcon } from "@/core/ui/icons";
 import { AccountMenu, AutoOpenAuth, LogInButton, OpenAppButton, SignUpButtonLedger, SignedIn, SignedOut } from "@/features/auth/AuthActions";
 import l from "./landing.module.css";
@@ -64,9 +64,8 @@ export function LandingPage({ sections }: { sections: SectionMeta[] }) {
       </a>
       <header className={l.bar}>
         <div className={l.barInner}>
-          <Link href="/" className={l.brand}>
-            <LedgerMark size={30} />
-            <span>Alpha Ledger</span>
+          <Link href="/" className={l.brand} aria-label="Alpha-Ledger home">
+            <LedgerLogo height={42} />
           </Link>
           <nav className={l.anchors} aria-label="On this page">
             <a href="#how">How it works</a>

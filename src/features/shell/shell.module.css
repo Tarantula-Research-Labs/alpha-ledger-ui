@@ -369,9 +369,15 @@
     gap: 8px;
   }
 }
-/* Narrow phones: logo without the name, so the header never runs off the screen */
+/* Full logo in the header; the α icon alone on narrow phones so the header never runs off the screen */
+.logoIcon {
+  display: none;
+}
 @media (max-width: 520px) {
-  .appBar .wordmarkText {
+  .logoFull {
     display: none;
+  }
+  .logoIcon {
+    display: block;
   }
 }

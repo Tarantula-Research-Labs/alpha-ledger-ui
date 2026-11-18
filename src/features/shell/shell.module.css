@@ -251,28 +251,50 @@
   border-color: transparent;
 }
 
-/* ---------- Hub left strip (icons + tooltips; bottom bar on phones) ---------- */
-.hubStrip {
+/* ---------- App header (every page): logo left, theme / server / account right ---------- */
+.appBar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 64px;
+  padding: 0 20px;
+  background: var(--hubbar-bg);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.appBarMid {
+  flex: 1;
+  min-width: 0;
+}
+.appBarRight {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ---------- Page strip under the header (icons + tooltips; bottom bar on phones) ---------- */
+.hubBody {
   display: grid;
   grid-template-columns: 68px minmax(0, 1fr);
 }
+.hubBody .hubMain {
+  width: 100%;
+}
 .strip {
   position: sticky;
-  top: 0;
+  top: 64px;
   z-index: 10;
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  height: 100dvh;
+  height: calc(100dvh - 64px);
   padding: 14px 0;
   border-right: 1px solid var(--line);
   background: var(--hubbar-bg);
-}
-.stripLogo {
-  display: grid;
-  place-items: center;
-  margin-bottom: 14px;
 }
 .stripLink {
   position: relative;
@@ -316,47 +338,13 @@
 .stripLink:focus-visible .tip {
   opacity: 1;
 }
-.stripSep {
-  width: 28px;
-  height: 1px;
-  margin: 6px 0;
-  background: var(--line);
-}
-.stripDot {
-  position: absolute;
-  top: 7px;
-  right: 8px;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--faint);
-}
-.stripDot[data-state="up"] {
-  background: var(--green);
-}
-.stripDot[data-state="down"] {
-  background: var(--red);
-}
-.stripFill {
-  flex: 1;
-}
-.stripTools {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-}
-.stripTools .themeToggle {
-  flex-direction: column;
-}
-.stripTools .userName {
-  display: none;
-}
-.hubStrip .hubMain {
-  width: 100%;
-}
 
 @media (max-width: 760px) {
-  .hubStrip {
+  .appBar {
+    padding: 0 12px;
+    gap: 10px;
+  }
+  .hubBody {
     grid-template-columns: minmax(0, 1fr);
     padding-bottom: 64px;
   }
@@ -374,18 +362,16 @@
     border-top: 1px solid var(--line);
     backdrop-filter: blur(8px);
   }
-  .stripLogo,
-  .stripSep,
-  .stripFill,
   .tip {
     display: none;
   }
-  .stripTools {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+  .appBarRight {
+    gap: 8px;
   }
-  .stripTools .themeToggle {
-    flex-direction: row;
+}
+/* Narrow phones: logo without the name, so the header never runs off the screen */
+@media (max-width: 520px) {
+  .appBar .wordmarkText {
+    display: none;
   }
 }

@@ -10,13 +10,14 @@ import { useTheme } from "@/core/theme";
 import { CONNECTED_TO_SERVER, useLedger } from "@/data/LedgerProvider";
 import { sectionStates, useMarks } from "@/data/marks";
 import { datasetsFor } from "@/data/queries";
+import { AppHeader } from "./AppHeader";
 import { AppStrip } from "./AppStrip";
 import { ToolsButton } from "./ToolsButton";
 import s from "./shell.module.css";
 import w from "./workspace.module.css";
 
-// Frame for one experiment: the shared strip, then a sidebar with the dashboard and every section,
-// content on the right. Experiments, Drive, records, server, theme and account live in the strip.
+// Frame for one experiment: the shared header (with this experiment's breadcrumb and Tools), then the
+// page strip, a sidebar with the dashboard and every section, and the content.
 export function WorkspaceShell({ experiment, sections, children }: { experiment: string; sections: SectionMeta[]; children: ReactNode }) {
   const pathname = usePathname();
   const { datasets } = useLedger();
@@ -37,6 +38,34 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
         Skip to content
       </a>
 
+      <AppHeader
+        before={
+          <button type="button" className={w.menuBtn} aria-label="Open sections" aria-expanded={open} onClick={() => setOpen(true)}>
+            <MenuIcon />
+          </button>
+        }
+        middle={
+            <nav aria-label="Breadcrumb" className={w.crumbs}>
+              <Link href="/experiments">Experiments</Link>
+              <span aria-hidden="true">/</span>
+              {current || onTools ? (
+                <>
+                  <Link href={base} className={identClass}>
+                    {experiment}
+                  </Link>
+                  <span aria-hidden="true">/</span>
+                  <span aria-current="page">{current ? `${current.number} ${current.title}` : "Tools"}</span>
+                </>
+              ) : (
+                <span aria-current="page" className={identClass}>
+                  {experiment}
+                </span>
+              )}
+            </nav>
+        }
+        extra={<ToolsButton href={`${base}/tools`} />}
+      />
+      <div className={w.cols}>
       <AppStrip />
 
       <aside className={w.sidebar} data-open={open} aria-label="Experiment navigation">
@@ -104,34 +133,10 @@ export function WorkspaceShell({ experiment, sections, children }: { experiment:
       {open && <button type="button" className={w.scrim} aria-label="Close menu" onClick={() => setOpen(false)} />}
 
       <div className={w.content}>
-        <header className={w.top}>
-          <button type="button" className={w.menuBtn} aria-label="Open menu" aria-expanded={open} onClick={() => setOpen(true)}>
-            <MenuIcon />
-          </button>
-          <nav aria-label="Breadcrumb" className={w.crumbs}>
-            <Link href="/experiments">Experiments</Link>
-            <span aria-hidden="true">/</span>
-            {current || onTools ? (
-              <>
-                <Link href={base} className={identClass}>
-                  {experiment}
-                </Link>
-                <span aria-hidden="true">/</span>
-                <span aria-current="page">{current ? `${current.number} ${current.title}` : "Tools"}</span>
-              </>
-            ) : (
-              <span aria-current="page" className={identClass}>
-                {experiment}
-              </span>
-            )}
-          </nav>
-          <div className={w.topRight}>
-            <ToolsButton href={`${base}/tools`} />
-          </div>
-        </header>
         <main id="main" className={w.main}>
           {children}
         </main>
+      </div>
       </div>
     </div>
   );

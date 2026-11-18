@@ -1,19 +1,23 @@
 /* One experiment's workspace: sidebar on the left, content on the right. */
 
 .frame {
-  display: grid;
-  grid-template-columns: 68px 272px minmax(0, 1fr); /* strip, sections, content */
   min-height: 100dvh;
   background: var(--texture), var(--app-bg);
   color: var(--text);
   font-family: var(--font-sans);
 }
 
+/* Below the shared header: page strip, sections, content */
+.cols {
+  display: grid;
+  grid-template-columns: 68px 272px minmax(0, 1fr);
+}
+
 /* ---------- Sidebar ---------- */
 .sidebar {
   position: sticky;
-  top: 0;
-  height: 100dvh;
+  top: 64px;
+  height: calc(100dvh - 64px);
   display: flex;
   flex-direction: column;
   gap: 18px;
@@ -240,12 +244,13 @@
 }
 
 @media (max-width: 960px) {
-  .frame {
+  .cols {
     grid-template-columns: 68px minmax(0, 1fr);
   }
   .sidebar {
     position: fixed;
     inset: 0 auto 0 0;
+    height: 100dvh;
     z-index: 40;
     width: min(290px, 86vw);
     transform: translateX(-102%);
@@ -343,10 +348,13 @@
   filter: none;
 }
 
-/* Phones: the strip becomes a bottom bar */
+/* Phones: the strip becomes a bottom bar; the breadcrumb is hidden to keep the header readable */
 @media (max-width: 760px) {
-  .frame {
+  .cols {
     grid-template-columns: minmax(0, 1fr);
     padding-bottom: 64px;
+  }
+  .crumbs {
+    display: none;
   }
 }

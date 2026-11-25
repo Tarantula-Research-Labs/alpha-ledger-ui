@@ -295,7 +295,7 @@ function limited(get: Getter, n = 8): Getter {
  *  An exact version never changes, so the browser may keep these replies (the /api proxy marks them
  *  "never changes"). `pushed` (the push time) makes a re-push after a delete, which reuses the
  *  version number, a different address, so a stale copy can never be shown. */
-async function fetchPathResults(cfg: PathConfig, source: { zip: string; experiment: string }, getAll: Getter): Promise<PathResults> {
+export async function fetchPathResults(cfg: PathConfig, source: { zip: string; experiment: string }, getAll: Getter): Promise<PathResults> {
   const get = limited(getAll);
   const runs = await get<MlflowRun[]>(`/experiments/${encodeURIComponent(source.experiment)}/runs`);
   const exps = await get<MlflowExperiment[]>(`/experiments`);
@@ -386,6 +386,57 @@ function snapshotGetter(snap: Snapshot): Getter {
   };
 }
 
+/** What GET .../bundle returns: `data` is a share link's data.json (same addresses, same values), so the
+ *  snapshot reader below serves it. A file the server couldn't read is listed in `errors` with the status
+ *  its own request would have had. */
+interface Bundle {
+  v: number;
+  data: Snapshot;
+  errors: Record<string, { status: number; message?: string | null }>;
+}
+
+/** Bumped when the bundle's contents change. It is part of the address, so a stale copy kept by the browser is never reused. */
+const BUNDLE_VERSION = 1;
+
+/** The bundle's address: the files this path's dashboard reads. The same path always gives the same text, and
+ *  another path, zip version or push time gives another one, so cached bundles never mix. */
+function bundleQuery(cfg: PathConfig, source: { experiment: string }, pushedAt: string): string {
+  const files = (keys: readonly (keyof PathConfig["artifacts"])[]) => [...new Set(keys.map((k) => cfg.artifacts[k]).filter((f): f is string => !!f))];
+  const q = new URLSearchParams({ bv: String(BUNDLE_VERSION), mlflow_experiment: source.experiment });
+  for (const f of files(["mlPerFold", "quantPerFold", "daily", ...EXTRA_KEYS])) q.append("per_run", f); // every in-sample and holdout run
+  for (const f of files(["yearly"])) q.append("chosen", f); // the chosen run only
+  q.append("compared", cfg.artifacts.daily); // the run named in compared_with_run (any experiment in the zip)
+  q.append("pushed", pushedAt);
+  return q.toString();
+}
+
+/** Serves from the bundle; a failed file throws its own error; anything the bundle doesn't have is read the usual way. */
+function bundleGetter(bundle: Bundle, live: Getter): Getter {
+  const fromBundle = snapshotGetter(bundle.data);
+  return async <T,>(path: string) => {
+    const key = decodeURIComponent(path);
+    if (key in bundle.data) return fromBundle<T>(path);
+    const failed = bundle.errors?.[key];
+    if (failed) throw new ApiError(failed.status, failed.message ?? `The server replied with an error (${failed.status}).`);
+    return live<T>(path);
+  };
+}
+
+/** Loads one exact pushed version from the server: one bundle request for everything, or, when that fails
+ *  for any reason (too large, an older server, the network, a server error), the files one by one as before. */
+export async function fetchLive(cfg: PathConfig, source: { zip: string; experiment: string }, base: string, pushedAt: string, fresh: boolean): Promise<PathResults> {
+  const cache = fresh ? "reload" : "default";
+  const get: Getter = (path) => apiRequest(`${base}${path}?pushed=${encodeURIComponent(pushedAt)}`, { cache });
+  let getter = get;
+  try {
+    const bundle = await apiRequest<Bundle>(`${base}/bundle?${bundleQuery(cfg, source, pushedAt)}`, { cache });
+    if (bundle?.v === BUNDLE_VERSION && bundle.data) getter = bundleGetter(bundle, get);
+  } catch {
+    // fall back to the single requests
+  }
+  return fetchPathResults(cfg, source, getter);
+}
+
 /** Results already loaded while this page is open: switching tabs or views reuses them. */
 const memory = new Map<string, Promise<PathResults>>();
 
@@ -427,8 +478,7 @@ export function usePathResults(experiment: string, section: string, cfg: PathCon
       let pending = memory.get(key);
       if (!pending) {
         const base = `/experiments/${experiment}/sections/${section}/mlflow/${encodeURIComponent(source.zip)}/${version}`;
-        const get: Getter = (path) => apiRequest(`${base}${path}?pushed=${encodeURIComponent(pushedAt)}`, { cache: fresh ? "reload" : "default" });
-        pending = fetchPathResults(cfg, source, get);
+        pending = fetchLive(cfg, source, base, pushedAt, fresh);
         memory.set(key, pending);
         pending.catch(() => memory.delete(key)); // a failed load is tried again next time
       }

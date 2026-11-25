@@ -14,7 +14,7 @@ const STATUS: Record<SyncState, string> = {
   synced: "Synced to S3",
   pending: "Saved in this browser · syncing soon",
   syncing: "Syncing…",
-  offline: "Server off · saved in this browser, syncs when it's on",
+  offline: "Server offline · saved in this browser, syncs when it's back",
   error: "Saved in this browser · sync failed",
 };
 

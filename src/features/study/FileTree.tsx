@@ -64,8 +64,8 @@ function Branch({ folder, open, toggle, forceOpen, selected, onSelect }: BranchP
   );
 }
 
-// The course folders as a tree, with a search box. Folders start closed (except a lone top folder).
-export function FileTree({ files, selected, onSelect }: { files: StudyFile[]; selected: string | null; onSelect: (path: string) => void }) {
+// The course folders as a tree, with a search box (and, on desktop, a button that folds the list away). Folders start closed (except a lone top folder).
+export function FileTree({ files, selected, onSelect, onFold }: { files: StudyFile[]; selected: string | null; onSelect: (path: string) => void; onFold?: () => void }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState<Set<string>>(() => startOpen(buildFolders(files)));
   const q = query.trim().toLowerCase();
@@ -103,6 +103,11 @@ export function FileTree({ files, selected, onSelect }: { files: StudyFile[]; se
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />
+        {onFold && (
+          <button type="button" className={st.treeFold} onClick={onFold} aria-label="Hide the file list" title="Hide the file list">
+            ‹
+          </button>
+        )}
       </div>
       <div className={st.treeScroll}>
         {empty ? (

@@ -192,8 +192,11 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
                 }}
               />
             )}
+            <button type="button" className={st.treeRail} onClick={() => setTreeFolded(false)} aria-label="Show the file list" title="Show the file list">
+              ›
+            </button>
             <aside className={st.treePane} data-open={treeOpen || undefined} aria-label="Course files">
-              <FileTree files={tree?.files ?? []} selected={selected} onSelect={select} />
+              <FileTree files={tree?.files ?? []} selected={selected} onSelect={select} onFold={() => setTreeFolded(true)} />
             </aside>
             <Viewer
               section={section.id}

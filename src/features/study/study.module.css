@@ -72,7 +72,11 @@
   .long { display: none; }
   .short { display: inline; }
   .viewerBar { gap: 2px; padding-left: 8px; }
-  .studyFrame { height: calc(100dvh - 64px - 60px - 24px); } /* the page strip is a bottom bar here */
-  .sync { gap: 8px; }
-  .synced { display: none; }
+  .studyFrame { height: calc(100dvh - 64px - 60px - 24px); gap: 6px; } /* the page strip is a bottom bar here */
+  /* Phones are short on height: the active tab already names the section, so the big title and description go. */
+  .page > header { margin-bottom: 8px; }
+  .page > header > div:first-child { display: none; }
+  .page > header > div:last-child { width: 100%; }
+  .sync { width: 100%; justify-content: space-between; gap: 8px; }
+  .synced { text-align: left; }
 }

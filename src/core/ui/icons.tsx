@@ -55,6 +55,13 @@ export const StudyIcon = () => (
   </svg>
 );
 
+export const PlaylistsIcon = () => (
+  <svg {...base}>
+    <rect x="3" y="5" width="18" height="14" rx="2.5" />
+    <path d="M10 9.5v5l4.5-2.5z" />
+  </svg>
+);
+
 export const SignOutIcon = () => (
   <svg {...base}>
     <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10" />

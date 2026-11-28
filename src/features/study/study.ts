@@ -171,6 +171,82 @@ export async function removeUpload(section: StudySection, uploadPath: string): P
   await apiRequest(`/study/uploads?section=${section}&path=${encodeURIComponent(uploadPath)}`, { method: "DELETE" });
 }
 
+/* ---------- Ask Gemini about the open file ---------- */
+
+/** What a question is about: a course file from the repo, or an upload (known to the server by its path in the section). */
+export interface AskTarget {
+  section: StudySection;
+  source: "repo" | "upload";
+  path: string;
+}
+
+export const askTargetOf = (section: StudySection, file: StudyFile): AskTarget =>
+  file.uploadPath !== null ? { section, source: "upload", path: file.uploadPath } : { section, source: "repo", path: file.path };
+
+export interface ChatMessage {
+  role: "user" | "model";
+  text: string;
+  at: string;
+  /** The version of the file the message was about; compared with the file's current one to spot outdated answers. */
+  sig: string;
+  /** Model messages: which model answered, and whether a lite model stood in because the main ones were busy. */
+  model?: string;
+  fallback?: boolean;
+  /** User messages: the pages the question was limited to, the page being read and the passage selected. */
+  firstPage?: number;
+  lastPage?: number;
+  page?: number;
+  quote?: string;
+}
+
+interface ServerMessage {
+  role: "user" | "model";
+  text: string;
+  at: string;
+  sig: string;
+  model?: string;
+  fallback?: boolean;
+  first_page?: number;
+  last_page?: number;
+  page?: number;
+  quote?: string;
+}
+
+const toMessage = (m: ServerMessage): ChatMessage => ({
+  role: m.role,
+  text: m.text,
+  at: m.at,
+  sig: m.sig,
+  model: m.model,
+  fallback: m.fallback,
+  firstPage: m.first_page,
+  lastPage: m.last_page,
+  page: m.page,
+  quote: m.quote,
+});
+
+const targetQuery = (t: AskTarget) => `section=${t.section}&source=${t.source}&path=${encodeURIComponent(t.path)}`;
+
+/** The saved conversation about a file, and the file's current version. */
+export async function loadChat(t: AskTarget): Promise<{ messages: ChatMessage[]; sig: string }> {
+  const r = await apiRequest<{ messages: ServerMessage[]; current_sig: string }>(`/study/chat?${targetQuery(t)}`);
+  return { messages: r.messages.map(toMessage), sig: r.current_sig };
+}
+
+/** Ask a question about a file (all of it, or the given pages of a PDF). The answer can take up to a minute when Gemini is busy. */
+export async function askStudy(t: AskTarget, question: string, pages?: { first: number; last: number }): Promise<ChatMessage> {
+  const r = await apiRequest<{ message: ServerMessage }>("/study/ask", {
+    method: "POST",
+    body: JSON.stringify({ ...t, question, first_page: pages?.first, last_page: pages?.last }),
+  });
+  return toMessage(r.message);
+}
+
+/** Start a new chat about a file. The server keeps a dated copy of the old one. */
+export async function clearChat(t: AskTarget): Promise<void> {
+  await apiRequest(`/study/chat?${targetQuery(t)}`, { method: "DELETE" });
+}
+
 /** Everything one section shows: the repo's files (MScFE only) and the uploads. */
 export function useStudyFiles(section: StudySection) {
   const { server } = useLedger();

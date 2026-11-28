@@ -4,6 +4,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 
+// A question to Gemini can take up to a minute when its models are busy.
+export const maxDuration = 60;
+
 const API_URL = process.env.API_URL ?? "http://127.0.0.1:8000";
 const API_KEY = process.env.LEDGER_API_KEY ?? "";
 

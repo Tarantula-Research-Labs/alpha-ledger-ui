@@ -34,6 +34,11 @@ interface Props {
   onToggleFull: () => void;
   /** An uploaded file can be removed from the section. */
   onRemove: () => void;
+  /** The Ask panel: its button, and whether it is open. */
+  onAsk: () => void;
+  askOpen: boolean;
+  /** Told how many pages the open PDF has (null when no PDF is open). */
+  onPages: (pages: number | null) => void;
 }
 
 // A text or Markdown file, shown as plain text.
@@ -59,7 +64,7 @@ function TextView({ url }: { url: string }) {
 // A PDF is drawn by pdf.js inside the app (phones can't show a PDF inside a page).
 // An image is shown as it is, a text file as plain text.
 // A notebook is a page of its own, so its frame is sandboxed: scripts and the print window are allowed, nothing else.
-export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, onRemove }: Props) {
+export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, onRemove, onAsk, askOpen, onPages }: Props) {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [tick, setTick] = useState(0); // Reload: ask the server again for a fresh link
   const path = file?.path ?? null;
@@ -85,6 +90,12 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
       live = false;
     };
   }, [section, path, uploadPath, tick, onOpened]);
+
+  // The Ask panel needs the page count of a PDF; anything else has none.
+  const isPdf = state.phase === "ready" && state.kind === "pdf";
+  useEffect(() => {
+    if (!isPdf) onPages(null);
+  }, [isPdf, state, onPages]);
 
   return (
     <section className={st.viewer} aria-label="Reader">
@@ -119,6 +130,9 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
             Remove
           </Button>
         )}
+        <Button variant={askOpen ? "primary" : "default"} onClick={onAsk} aria-pressed={askOpen}>
+          Ask
+        </Button>
         <Button variant="quiet" onClick={onToggleFull} aria-pressed={full}>
           {full ? "Exit full screen" : "Full screen"}
         </Button>
@@ -145,7 +159,7 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
         )}
         {state.phase === "ready" &&
           (state.kind === "pdf" ? (
-            <PdfReader key={state.url} url={state.url} />
+            <PdfReader key={state.url} url={state.url} onPages={onPages} />
           ) : state.kind === "image" ? (
             <div className={st.imageWrap}>
               <img className={st.image} src={state.url} alt={file ? fileName(file.path) : ""} />

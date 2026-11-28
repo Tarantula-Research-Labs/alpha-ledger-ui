@@ -6,6 +6,7 @@ import { formatDateTime } from "@/core/format";
 import { Button, Dialog, EmptyState, PageHeader } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
 import { ServerGate } from "@/features/experiments/ServerGate";
+import { AskPanel } from "./AskPanel";
 import { FileTree } from "./FileTree";
 import { UploadDialog } from "./UploadDialog";
 import { Viewer } from "./Viewer";
@@ -19,6 +20,7 @@ const summary = (r: SyncResult) =>
 // One Study section: a folder tree on the left, the reader on the right. MScFE also lists the course PDFs and
 // notebooks from the GitHub repo (with Sync); every section takes uploads.
 // On tablets and phones the tree is a panel that slides over the reader (the Files button).
+// The Ask button opens Gemini's panel: a third column on wide screens, over the reader on smaller ones.
 export function StudyPage({ section: sectionId }: { section: StudySection }) {
   const section = STUDY_SECTIONS.find((x) => x.id === sectionId) ?? STUDY_SECTIONS[0];
   const router = useRouter();
@@ -31,6 +33,8 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
   const [treeOpen, setTreeOpen] = useState(false);
   const [full, setFull] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
+  const [pages, setPages] = useState<number | null>(null); // pages of the open PDF, for the Ask panel
   const [removing, setRemoving] = useState<StudyFile | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removeBusy, setRemoveBusy] = useState(false);
@@ -154,8 +158,18 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
             <p>Upload PDFs, notebooks, images or text files and read them here.</p>
           </EmptyState>
         ) : (
-          <div ref={layoutRef} className={st.layout} data-full={full || undefined}>
-            {treeOpen && <button type="button" className={st.scrim} aria-label="Close the file list" onClick={() => setTreeOpen(false)} />}
+          <div ref={layoutRef} className={st.layout} data-full={full || undefined} data-ask={askOpen || undefined}>
+            {(treeOpen || askOpen) && (
+              <button
+                type="button"
+                className={st.scrim}
+                aria-label="Close the panel"
+                onClick={() => {
+                  setTreeOpen(false);
+                  setAskOpen(false);
+                }}
+              />
+            )}
             <aside className={st.treePane} data-open={treeOpen || undefined} aria-label="Course files">
               <FileTree files={tree?.files ?? []} selected={selected} onSelect={select} />
             </aside>
@@ -163,14 +177,24 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
               section={section.id}
               file={file}
               onOpened={markOpened}
-              onBrowse={() => setTreeOpen(true)}
+              onBrowse={() => {
+                setAskOpen(false);
+                setTreeOpen(true);
+              }}
               full={full}
               onToggleFull={toggleFull}
               onRemove={() => {
                 setRemoveError(null);
                 setRemoving(file);
               }}
+              onAsk={() => {
+                setTreeOpen(false);
+                setAskOpen((o) => !o);
+              }}
+              askOpen={askOpen}
+              onPages={setPages}
             />
+            {askOpen && <AskPanel section={section.id} file={file} pages={pages} onClose={() => setAskOpen(false)} />}
           </div>
         )}
       </ServerGate>

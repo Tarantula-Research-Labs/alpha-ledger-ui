@@ -84,7 +84,7 @@ function Page({ pdfjs, doc, n, scale, size, root }: { pdfjs: Pdfjs; doc: PDFDocu
 
 // The PDF, drawn by pdf.js inside the app: continuous pages, zoom, page jump, selectable text.
 // It works the same in every browser, unlike the browser's own PDF viewer (phones don't show one inside a page).
-export function PdfReader({ url }: { url: string }) {
+export function PdfReader({ url, onPages }: { url: string; onPages?: (pages: number) => void }) {
   const [pdfjs, setPdfjs] = useState<Pdfjs | null>(null);
   const [doc, setDoc] = useState<PDFDocumentProxy | null>(null);
   const [sizes, setSizes] = useState<Size[] | null>(null);
@@ -141,6 +141,7 @@ export function PdfReader({ url }: { url: string }) {
       setPdfjs(lib);
       setDoc(d);
       setSizes(all);
+      onPages?.(all.length);
     })().catch((e: unknown) => {
       if (dead) return;
       const name = (e as { name?: string } | null)?.name;

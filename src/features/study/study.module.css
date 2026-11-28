@@ -17,6 +17,8 @@
 .synced[data-failed] { color: var(--red); }
 
 .layout { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 12px; }
+/* Full screen: the tree and reader cover the whole window, above the header and page strip. */
+.layout[data-full] { position: fixed; inset: 0; z-index: 1000; padding: 8px; background: var(--bg); }
 
 /* ---------- Tree ---------- */
 .treePane { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); overflow: hidden; }
@@ -44,6 +46,8 @@
 .viewerBar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); }
 .title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
 .crumb { color: var(--muted); }
+.long { display: inline; }
+.short { display: none; }
 .note { flex: none; color: var(--amber); font-size: var(--fs-xs); }
 .filesBtn { display: none; }
 .frameWrap { position: relative; flex: 1; min-height: 0; background: #fff; }
@@ -65,6 +69,9 @@
 }
 
 @media (max-width: 760px) {
+  .long { display: none; }
+  .short { display: inline; }
+  .viewerBar { gap: 2px; padding-left: 8px; }
   .studyFrame { height: calc(100dvh - 64px - 60px - 24px); } /* the page strip is a bottom bar here */
   .sync { gap: 8px; }
   .synced { display: none; }

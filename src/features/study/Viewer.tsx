@@ -1,10 +1,21 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Button, EmptyState } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
 import { errorText, fileName, folderOf, openStudyFile, type StudyFile, type StudyKind } from "./study";
 import st from "./study.module.css";
+
+// pdf.js is big: it is only fetched when the first PDF opens.
+const PdfReader = dynamic(() => import("./PdfReader").then((m) => m.PdfReader), {
+  ssr: false,
+  loading: () => (
+    <div className={st.centre}>
+      <GearSpinner label="Preparing the PDF…" />
+    </div>
+  ),
+});
 
 type State = { phase: "idle" } | { phase: "loading" } | { phase: "ready"; url: string; kind: StudyKind } | { phase: "error"; message: string };
 
@@ -14,12 +25,15 @@ interface Props {
   onOpened: (path: string) => void;
   /** Narrow screens: show the file list. */
   onBrowse: () => void;
+  /** Full screen: the reader and the file list fill the whole screen. */
+  full: boolean;
+  onToggleFull: () => void;
 }
 
 // The open file. The server copies it from GitHub into S3 the first time and gives a 15-minute link.
-// A PDF goes in the browser's own PDF viewer (it can't run inside a sandboxed frame).
+// A PDF is drawn by pdf.js inside the app (phones can't show a PDF inside a page).
 // A notebook is a page of its own, so its frame is sandboxed: scripts and the print window are allowed, nothing else.
-export function Viewer({ file, onOpened, onBrowse }: Props) {
+export function Viewer({ file, onOpened, onBrowse, full, onToggleFull }: Props) {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [tick, setTick] = useState(0); // Reload: ask the server again for a fresh link
   const path = file?.path ?? null;
@@ -64,7 +78,8 @@ export function Viewer({ file, onOpened, onBrowse }: Props) {
         {file?.badge === "updated" && <span className={st.note}>Updated on GitHub</span>}
         {state.phase === "ready" && (
           <Button variant="quiet" onClick={() => window.open(state.url, "_blank", "noopener,noreferrer")}>
-            Open in new tab
+            <span className={st.long}>Open in new tab</span>
+            <span className={st.short}>New tab</span>
           </Button>
         )}
         {file && (
@@ -72,6 +87,9 @@ export function Viewer({ file, onOpened, onBrowse }: Props) {
             Reload
           </Button>
         )}
+        <Button variant="quiet" onClick={onToggleFull} aria-pressed={full}>
+          {full ? "Exit full screen" : "Full screen"}
+        </Button>
       </div>
       <div className={st.frameWrap}>
         {state.phase === "idle" && (
@@ -95,7 +113,7 @@ export function Viewer({ file, onOpened, onBrowse }: Props) {
         )}
         {state.phase === "ready" &&
           (state.kind === "pdf" ? (
-            <iframe key={state.url} className={st.frame} src={state.url} title={file ? fileName(file.path) : "PDF"} />
+            <PdfReader key={state.url} url={state.url} />
           ) : (
             <iframe
               key={state.url}

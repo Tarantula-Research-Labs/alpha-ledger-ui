@@ -26,9 +26,32 @@ export function StudyPage() {
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<{ text: string; failed: boolean } | null>(null);
   const [treeOpen, setTreeOpen] = useState(false);
+  const [full, setFull] = useState(false);
+  const layoutRef = useRef<HTMLDivElement>(null);
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => void (noteTimer.current && clearTimeout(noteTimer.current)), []);
+
+  // Leaving the browser's own full screen (Esc, the phone's back gesture) also leaves ours.
+  useEffect(() => {
+    const onChange = () => {
+      if (!document.fullscreenElement) setFull(false);
+    };
+    document.addEventListener("fullscreenchange", onChange);
+    return () => document.removeEventListener("fullscreenchange", onChange);
+  }, []);
+
+  // Full screen: the reader area covers the page. Where the browser allows it (Android, desktop), it also hides the
+  // address bar; iPhones and iPads don't allow that, so there the page's own covering is all you get.
+  function toggleFull() {
+    if (full) {
+      setFull(false);
+      if (document.fullscreenElement) void document.exitFullscreen().catch(() => {});
+    } else {
+      setFull(true);
+      void layoutRef.current?.requestFullscreen?.().catch(() => {});
+    }
+  }
 
   async function sync() {
     setSyncing(true);
@@ -82,12 +105,12 @@ export function StudyPage() {
             <p>The server reads your GitHub repo once and lists its PDFs and notebooks here.</p>
           </EmptyState>
         ) : (
-          <div className={st.layout}>
+          <div ref={layoutRef} className={st.layout} data-full={full || undefined}>
             {treeOpen && <button type="button" className={st.scrim} aria-label="Close the file list" onClick={() => setTreeOpen(false)} />}
             <aside className={st.treePane} data-open={treeOpen || undefined} aria-label="Course files">
               <FileTree files={tree?.files ?? []} selected={selected} onSelect={select} />
             </aside>
-            <Viewer file={file} onOpened={markOpened} onBrowse={() => setTreeOpen(true)} />
+            <Viewer file={file} onOpened={markOpened} onBrowse={() => setTreeOpen(true)} full={full} onToggleFull={toggleFull} />
           </div>
         )}
       </ServerGate>

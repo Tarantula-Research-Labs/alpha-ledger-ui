@@ -1,0 +1,29 @@
+/* The pdf.js reader: grey desk, white pages, a small control bar at the bottom. */
+.reader { position: absolute; inset: 0; display: flex; flex-direction: column; background: #525659; }
+.scroller { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+.pages { display: flex; flex-direction: column; min-width: 100%; width: max-content; box-sizing: border-box; }
+.message { display: grid; place-items: center; min-height: 100%; padding: 24px; color: #e8eaed; text-align: center; font-size: var(--fs-sm); }
+
+.page { position: relative; flex: none; margin: 0 auto; background: #fff; box-shadow: 0 1px 6px rgba(0, 0, 0, 0.45); }
+.canvas { position: absolute; inset: 0; display: block; }
+
+/* The selectable text sits on top of the picture, invisible. pdf.js sets each piece's size and position. */
+.textLayer { position: absolute; inset: 0; overflow: clip; line-height: 1; text-align: initial; text-size-adjust: none; -webkit-text-size-adjust: none; forced-color-adjust: none; transform-origin: 0 0; color-scheme: only light; }
+.textLayer span, .textLayer br { position: absolute; color: transparent; white-space: pre; cursor: text; transform-origin: 0 0; user-select: text; -webkit-user-select: text; }
+.textLayer > :not(:global(.markedContent)), .textLayer :global(.markedContent) span:not(:global(.markedContent)) {
+  --font-height: 0;
+  --scale-x: 1;
+  --rotate: 0deg;
+  font-size: calc(var(--total-scale-factor) * var(--font-height));
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x));
+}
+.textLayer :global(.markedContent) { display: contents; }
+.textLayer ::selection { background: rgba(0, 90, 255, 0.3); color: transparent; }
+
+.bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: var(--fs-sm); }
+.zoomValue { min-width: 52px; padding: 6px 4px; border: 0; border-radius: 6px; background: none; color: var(--text); font: inherit; cursor: pointer; }
+.zoomValue:hover { background: var(--row-hover); }
+.sep { width: 1px; height: 20px; margin: 0 6px; background: var(--line); }
+.pageBox { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); }
+.pageInput { width: 52px; padding: 6px 4px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--text); font: inherit; text-align: center; -moz-appearance: textfield; }
+.pageInput::-webkit-outer-spin-button, .pageInput::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }

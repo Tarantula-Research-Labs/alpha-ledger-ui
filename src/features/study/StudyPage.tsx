@@ -69,7 +69,7 @@ export function StudyPage() {
 
   return (
     <div className={st.page}>
-      <PageHeader title="Study" sub="Course PDFs and notebooks from your GitHub repo. Sync after you push new material." actions={syncBox} />
+      <PageHeader title="MScFE" sub="Course PDFs and notebooks from your GitHub repo. Sync after you push new material." actions={syncBox} />
       <ServerGate>
         {loading ? (
           <GearSpinner label="Loading your course files…" />

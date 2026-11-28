@@ -1,7 +1,15 @@
 /* Study: a file tree on the left, the reader on the right. Below 1100px the tree slides over the reader. */
 
-/* The page fills the screen under the header, so the tree and the reader scroll on their own. */
-.page { display: flex; flex-direction: column; height: calc(100dvh - 64px - 32px); min-height: 520px; }
+/* The frame fills the screen under the header, so the tree and the reader scroll on their own. */
+.frame { display: flex; gap: 16px; height: calc(100dvh - 64px - 32px); min-height: 520px; }
+.content { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+.page { flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; }
+
+/* ---------- Section menu ---------- */
+.menu { flex: none; width: 180px; display: flex; flex-direction: column; gap: 2px; }
+.menuLink { padding: 8px 12px; border-radius: var(--r-control); color: var(--muted); font-size: var(--fs-sm); text-decoration: none; }
+.menuLink:hover, .menuLink:focus-visible { background: var(--row-hover); color: var(--text); }
+.menuLink[aria-current="page"] { background: var(--nav-active-bg); color: var(--text); font-weight: 500; }
 .page > header { flex: none; margin-bottom: 14px; }
 
 .sync { display: flex; align-items: center; gap: 12px; }
@@ -45,6 +53,9 @@
 
 /* ---------- Tablets (portrait) and phones: the tree slides over the reader ---------- */
 @media (max-width: 1100px) {
+  .frame { flex-direction: column; gap: 10px; }
+  .menu { flex-direction: row; gap: 4px; overflow-x: auto; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+  .menuLink { flex: none; padding: 10px 14px; white-space: nowrap; }
   .layout { grid-template-columns: minmax(0, 1fr); }
   .filesBtn { display: inline-flex; }
   .treePane { position: absolute; inset: 0 auto 0 0; z-index: 5; width: min(88%, 360px); transform: translateX(-104%); transition: transform 0.18s ease; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35); }
@@ -54,7 +65,7 @@
 }
 
 @media (max-width: 760px) {
-  .page { height: calc(100dvh - 64px - 60px - 24px); } /* the page strip is a bottom bar here */
+  .frame { height: calc(100dvh - 64px - 60px - 24px); } /* the page strip is a bottom bar here */
   .sync { gap: 8px; }
   .synced { display: none; }
 }

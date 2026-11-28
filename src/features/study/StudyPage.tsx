@@ -10,7 +10,7 @@ import { AskPanel } from "./AskPanel";
 import { FileTree } from "./FileTree";
 import { UploadDialog } from "./UploadDialog";
 import { Viewer } from "./Viewer";
-import { errorText, folderOf, removeUpload, STUDY_SECTIONS, syncStudy, useStudyFiles, type StudyFile, type StudySection, type SyncResult } from "./study";
+import { errorText, folderOf, removeUpload, STUDY_SECTIONS, syncStudy, useStudyFiles, type Passage, type StudyFile, type StudySection, type SyncResult } from "./study";
 import st from "./study.module.css";
 
 const plural = (n: number, word: string) => `${n} ${word}`;
@@ -35,6 +35,8 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [pages, setPages] = useState<number | null>(null); // pages of the open PDF, for the Ask panel
+  const [page, setPage] = useState<number | null>(null); // the page showing in the open PDF
+  const [passage, setPassage] = useState<Passage | null>(null); // text selected in the PDF, waiting to be asked about
   const [removing, setRemoving] = useState<StudyFile | null>(null);
   const [removeError, setRemoveError] = useState<string | null>(null);
   const [removeBusy, setRemoveBusy] = useState(false);
@@ -43,6 +45,9 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
   const noteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => void (noteTimer.current && clearTimeout(noteTimer.current)), []);
+
+  // A selected passage belongs to the file it was taken from.
+  useEffect(() => setPassage(null), [selected]);
 
   // Leaving the browser's own full screen (Esc, the phone's back gesture) also leaves ours.
   useEffect(() => {
@@ -193,8 +198,14 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
               }}
               askOpen={askOpen}
               onPages={setPages}
+              onPage={setPage}
+              onPassage={(p) => {
+                setPassage(p);
+                setTreeOpen(false);
+                setAskOpen(true);
+              }}
             />
-            {askOpen && <AskPanel section={section.id} file={file} pages={pages} onClose={() => setAskOpen(false)} />}
+            {askOpen && <AskPanel section={section.id} file={file} pages={pages} page={page} passage={passage} onPassageDone={() => setPassage(null)} onClose={() => setAskOpen(false)} />}
           </div>
         )}
       </ServerGate>

@@ -56,6 +56,11 @@
 
 .compose { flex: none; display: grid; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
 .error { margin: 0; color: var(--red); font-size: var(--fs-xs); line-height: 1.4; }
+.passage { padding: 8px 10px; border: 1px solid var(--line-strong); border-left: 3px solid var(--accent); border-radius: var(--r-control); background: var(--accent-soft); display: grid; gap: 4px; }
+.passageHead { display: flex; align-items: center; justify-content: space-between; gap: 8px; color: var(--muted); font-size: var(--fs-xs); }
+.passageX { padding: 0 6px; border: 0; border-radius: 4px; background: none; color: var(--muted); font-size: 18px; line-height: 20px; cursor: pointer; }
+.passageX:hover:not(:disabled) { background: var(--panel-hi); color: var(--text); }
+.passageText { margin: 0; max-height: 4.5em; overflow: auto; font-size: var(--fs-xs); line-height: 1.5; overflow-wrap: anywhere; }
 .box { width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px; max-height: 200px; font-size: var(--fs-sm); }
 .sendRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .scope { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: var(--fs-sm); }

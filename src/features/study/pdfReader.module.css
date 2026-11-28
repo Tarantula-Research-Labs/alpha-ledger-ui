@@ -20,6 +20,9 @@
 .textLayer :global(.markedContent) { display: contents; }
 .textLayer ::selection { background: rgba(0, 90, 255, 0.3); color: transparent; }
 
+.askPick { position: absolute; z-index: 4; padding: 7px 12px; border: 1px solid var(--accent-hi); border-radius: var(--r-control); background: var(--accent); color: #fff; font: inherit; font-size: var(--fs-sm); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.5); cursor: pointer; white-space: nowrap; }
+.askPick:hover { background: var(--accent-hi); }
+
 .bar { flex: none; display: flex; align-items: center; justify-content: center; gap: 4px; padding: 6px 8px; border-top: 1px solid var(--line); background: var(--panel); color: var(--text); font-size: var(--fs-sm); }
 .zoomValue { min-width: 52px; padding: 6px 4px; border: 0; border-radius: 6px; background: none; color: var(--text); font: inherit; cursor: pointer; }
 .zoomValue:hover { background: var(--row-hover); }

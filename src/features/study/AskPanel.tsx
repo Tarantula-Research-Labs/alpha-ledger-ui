@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, inputClass } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { askStudy, askTargetOf, checkModels, clearChat, errorText, fileName, loadChat, modelLabel, type ChatMessage, type ModelStatus, type StudyFile, type StudySection } from "./study";
+import { askStudy, askTargetOf, checkModels, clearChat, errorText, fileName, loadChat, modelLabel, type ChatMessage, type ModelStatus, type Passage, type StudyFile, type StudySection } from "./study";
 import a from "./ask.module.css";
 
 // KaTeX and the Markdown renderer are only fetched when the first answer is shown.
@@ -27,11 +27,16 @@ interface Props {
   file: StudyFile | null;
   /** Pages in the open PDF (null for anything else, or while it loads). */
   pages: number | null;
+  /** The page showing in the open PDF; it goes along with every question. */
+  page: number | null;
+  /** A passage selected in the PDF; the next question is about it. */
+  passage: Passage | null;
+  onPassageDone: () => void;
   onClose: () => void;
 }
 
 // Ask Gemini about the open file. The conversation is saved on the server, one per file, and comes back when you reopen it.
-export function AskPanel({ section, file, pages, onClose }: Props) {
+export function AskPanel({ section, file, pages, page, passage, onPassageDone, onClose }: Props) {
   const target = file ? askTargetOf(section, file) : null;
   const key = target ? `${target.section}|${target.source}|${target.path}` : null;
   const keyRef = useRef(key);
@@ -111,7 +116,10 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
   const shown = chat && chat.key === key ? chat : null;
   const waiting = pending && pending.key === key ? pending : null;
   const failure = error && error.key === key ? error.text : null;
-  const big = file?.kind === "pdf" && pages !== null && pages > BIG_PDF_PAGES;
+  const isPdf = file?.kind === "pdf" && pages !== null;
+  const big = isPdf && pages > BIG_PDF_PAGES;
+  // A passage knows its own page; otherwise a PDF question carries the page being read.
+  const aboutPage = passage?.page ?? (isPdf ? page : null);
 
   useEffect(() => {
     const el = list.current;
@@ -135,9 +143,10 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
     setPending({ key, question });
     setDraft("");
     try {
-      const reply = await askStudy(target, question, range, model === "auto" ? undefined : model);
-      const asked: ChatMessage = { role: "user", text: question, at: new Date().toISOString(), sig: reply.sig, firstPage: range?.first, lastPage: range?.last };
+      const reply = await askStudy(target, question, range, model === "auto" ? undefined : model, { page: aboutPage ?? undefined, quote: passage?.text });
+      const asked: ChatMessage = { role: "user", text: question, at: new Date().toISOString(), sig: reply.sig, firstPage: range?.first, lastPage: range?.last, page: aboutPage ?? undefined, quote: passage?.text };
       setChat((c) => (c && c.key === key ? { ...c, messages: [...c.messages, asked, reply] } : c));
+      if (passage) onPassageDone(); // the passage was for this question only
     } catch (e) {
       if (keyRef.current === key) setDraft((d) => d || question); // keep the question, so it can be sent again
       setError({ key, text: errorText(e, "Couldn't get an answer.") });
@@ -253,11 +262,25 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
                 )}
               </div>
             )}
+            {passage && (
+              <div className={a.passage}>
+                <div className={a.passageHead}>
+                  <span>Passage from page {passage.page}</span>
+                  <button type="button" className={a.passageX} onClick={onPassageDone} aria-label="Remove the passage" disabled={waiting !== null}>
+                    ×
+                  </button>
+                </div>
+                <p className={a.passageText} title={passage.text}>
+                  {passage.text}
+                </p>
+                {model === "auto" && <p className={a.hint}>Passage questions are answered by the fast models.</p>}
+              </div>
+            )}
             <textarea
               className={`${inputClass} ${a.box}`}
               rows={3}
               value={draft}
-              placeholder="Ask about this file…"
+              placeholder={passage ? "Ask about this passage…" : "Ask about this file…"}
               aria-label="Your question"
               maxLength={4000}
               onChange={(e) => setDraft(e.target.value)}
@@ -295,7 +318,7 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
               </p>
             ) : null}
             <div className={a.sendRow}>
-              <span className={a.hint}>Ctrl+Enter sends</span>
+              <span className={a.hint}>Ctrl+Enter sends{aboutPage && !passage ? ` · reading page ${aboutPage}` : ""}</span>
               <Button variant="primary" onClick={() => void send()} disabled={!shown || waiting !== null || !draft.trim()}>
                 {waiting ? "Asking…" : "Ask"}
               </Button>

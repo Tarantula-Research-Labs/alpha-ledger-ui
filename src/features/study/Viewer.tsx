@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 import { Button, EmptyState } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { errorText, fileName, folderOf, openStudyFile, openUpload, type StudyFile, type StudyKind, type StudySection } from "./study";
+import { errorText, fileName, folderOf, openStudyFile, openUpload, type Passage, type StudyFile, type StudyKind, type StudySection } from "./study";
 import st from "./study.module.css";
 
 // pdf.js is big: it is only fetched when the first PDF opens.
@@ -39,6 +39,10 @@ interface Props {
   askOpen: boolean;
   /** Told how many pages the open PDF has (null when no PDF is open). */
   onPages: (pages: number | null) => void;
+  /** Told which page of the open PDF is showing (null when no PDF is open). */
+  onPage: (page: number | null) => void;
+  /** A passage selected in the PDF, to ask about. */
+  onPassage: (passage: Passage) => void;
 }
 
 // A text or Markdown file, shown as plain text.
@@ -64,7 +68,7 @@ function TextView({ url }: { url: string }) {
 // A PDF is drawn by pdf.js inside the app (phones can't show a PDF inside a page).
 // An image is shown as it is, a text file as plain text.
 // A notebook is a page of its own, so its frame is sandboxed: scripts and the print window are allowed, nothing else.
-export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, onRemove, onAsk, askOpen, onPages }: Props) {
+export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, onRemove, onAsk, askOpen, onPages, onPage, onPassage }: Props) {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [tick, setTick] = useState(0); // Reload: ask the server again for a fresh link
   const path = file?.path ?? null;
@@ -91,11 +95,14 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
     };
   }, [section, path, uploadPath, tick, onOpened]);
 
-  // The Ask panel needs the page count of a PDF; anything else has none.
+  // The Ask panel needs the page count and the open page of a PDF; anything else has none.
   const isPdf = state.phase === "ready" && state.kind === "pdf";
   useEffect(() => {
-    if (!isPdf) onPages(null);
-  }, [isPdf, state, onPages]);
+    if (!isPdf) {
+      onPages(null);
+      onPage(null);
+    }
+  }, [isPdf, state, onPages, onPage]);
 
   return (
     <section className={st.viewer} aria-label="Reader">
@@ -159,7 +166,7 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
         )}
         {state.phase === "ready" &&
           (state.kind === "pdf" ? (
-            <PdfReader key={state.url} url={state.url} onPages={onPages} />
+            <PdfReader key={state.url} url={state.url} onPages={onPages} onPage={onPage} onPassage={onPassage} />
           ) : state.kind === "image" ? (
             <div className={st.imageWrap}>
               <img className={st.image} src={state.url} alt={file ? fileName(file.path) : ""} />

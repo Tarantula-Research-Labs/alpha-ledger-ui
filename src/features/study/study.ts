@@ -199,6 +199,12 @@ export interface ChatMessage {
   quote?: string;
 }
 
+/** A passage selected in the PDF, and the page it is on. */
+export interface Passage {
+  text: string;
+  page: number;
+}
+
 interface ServerMessage {
   role: "user" | "model";
   text: string;
@@ -236,11 +242,12 @@ export async function loadChat(t: AskTarget): Promise<{ messages: ChatMessage[];
 /**
  * Ask a question about a file (all of it, or the given pages of a PDF). The answer can take up to a minute when Gemini is busy.
  * With a model, only that model is asked; without one, the server races its models and falls back to a lite one.
+ * `about` tells Gemini the page being read and, for a passage question, the selected text (the server then uses its fast models).
  */
-export async function askStudy(t: AskTarget, question: string, pages?: { first: number; last: number }, model?: string): Promise<ChatMessage> {
+export async function askStudy(t: AskTarget, question: string, pages?: { first: number; last: number }, model?: string, about?: { page?: number; quote?: string }): Promise<ChatMessage> {
   const r = await apiRequest<{ message: ServerMessage }>("/study/ask", {
     method: "POST",
-    body: JSON.stringify({ ...t, question, first_page: pages?.first, last_page: pages?.last, model }),
+    body: JSON.stringify({ ...t, question, first_page: pages?.first, last_page: pages?.last, model, page: about?.page, quote: about?.quote }),
   });
   return toMessage(r.message);
 }

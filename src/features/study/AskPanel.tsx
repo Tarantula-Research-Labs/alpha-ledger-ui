@@ -285,7 +285,8 @@ export function AskPanel({ section, file, pages, page, passage, onPassageDone, o
               maxLength={4000}
               onChange={(e) => setDraft(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                // Enter sends; Shift+Enter starts a new line. (Not while an input method is still composing a word.)
+                if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                   e.preventDefault();
                   void send();
                 }
@@ -318,7 +319,7 @@ export function AskPanel({ section, file, pages, page, passage, onPassageDone, o
               </p>
             ) : null}
             <div className={a.sendRow}>
-              <span className={a.hint}>Ctrl+Enter sends{aboutPage && !passage ? ` · reading page ${aboutPage}` : ""}</span>
+              <span className={a.hint}>Enter sends · Shift+Enter for a new line{aboutPage && !passage ? ` · reading page ${aboutPage}` : ""}</span>
               <Button variant="primary" onClick={() => void send()} disabled={!shown || waiting !== null || !draft.trim()}>
                 {waiting ? "Asking…" : "Ask"}
               </Button>

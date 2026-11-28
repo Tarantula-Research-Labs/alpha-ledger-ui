@@ -27,8 +27,10 @@ interface Props {
   file: StudyFile | null;
   /** Called once the server has the file ready (it is then marked seen). */
   onOpened: (path: string) => void;
-  /** Narrow screens: show the file list. */
+  /** Show the file list (the "Browse files" button of an empty reader). */
   onBrowse: () => void;
+  /** The Files button: folds the file list away or brings it back (a slide-over on narrow screens). */
+  onToggleFiles: () => void;
   /** Full screen: the reader and the file list fill the whole screen. */
   full: boolean;
   onToggleFull: () => void;
@@ -68,7 +70,7 @@ function TextView({ url }: { url: string }) {
 // A PDF is drawn by pdf.js inside the app (phones can't show a PDF inside a page).
 // An image is shown as it is, a text file as plain text.
 // A notebook is a page of its own, so its frame is sandboxed: scripts and the print window are allowed, nothing else.
-export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, onRemove, onAsk, askOpen, onPages, onPage, onPassage }: Props) {
+export function Viewer({ section, file, onOpened, onBrowse, onToggleFiles, full, onToggleFull, onRemove, onAsk, askOpen, onPages, onPage, onPassage }: Props) {
   const [state, setState] = useState<State>({ phase: "idle" });
   const [tick, setTick] = useState(0); // Reload: ask the server again for a fresh link
   const path = file?.path ?? null;
@@ -107,7 +109,7 @@ export function Viewer({ section, file, onOpened, onBrowse, full, onToggleFull, 
   return (
     <section className={st.viewer} aria-label="Reader">
       <div className={st.viewerBar}>
-        <Button variant="quiet" className={st.filesBtn} onClick={onBrowse}>
+        <Button variant="quiet" className={st.filesToggle} onClick={onToggleFiles} title="Show or hide the file list">
           Files
         </Button>
         <div className={st.title} title={path ?? undefined}>

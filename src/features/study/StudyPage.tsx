@@ -8,6 +8,7 @@ import { GearSpinner } from "@/core/ui/GearSpinner";
 import { ServerGate } from "@/features/experiments/ServerGate";
 import { AskPanel } from "./AskPanel";
 import { FileTree } from "./FileTree";
+import { useSavedFlag } from "./savedFlag";
 import { UploadDialog } from "./UploadDialog";
 import { Viewer } from "./Viewer";
 import { errorText, folderOf, removeUpload, STUDY_SECTIONS, syncStudy, useStudyFiles, type Passage, type StudyFile, type StudySection, type SyncResult } from "./study";
@@ -30,7 +31,8 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
 
   const [syncing, setSyncing] = useState(false);
   const [syncNote, setSyncNote] = useState<{ text: string; failed: boolean } | null>(null);
-  const [treeOpen, setTreeOpen] = useState(false);
+  const [treeOpen, setTreeOpen] = useState(false); // narrow screens: the file list slid over the reader
+  const [treeFolded, setTreeFolded] = useSavedFlag("study.treeFolded"); // desktop: the file list folded away
   const [full, setFull] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
@@ -68,6 +70,21 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
       setFull(true);
       void layoutRef.current?.requestFullscreen?.().catch(() => {});
     }
+  }
+
+  // Below 1100px the file list is a slide-over; above it is a column that can be folded away.
+  const narrow = () => window.matchMedia("(max-width: 1100px)").matches;
+  function showFiles() {
+    if (narrow()) {
+      setAskOpen(false);
+      setTreeOpen(true);
+    } else setTreeFolded(false);
+  }
+  function toggleFiles() {
+    if (narrow()) {
+      setAskOpen(false);
+      setTreeOpen((o) => !o);
+    } else setTreeFolded(!treeFolded);
   }
 
   async function sync() {
@@ -163,7 +180,7 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
             <p>Upload PDFs, notebooks, images or text files and read them here.</p>
           </EmptyState>
         ) : (
-          <div ref={layoutRef} className={st.layout} data-full={full || undefined} data-ask={askOpen || undefined}>
+          <div ref={layoutRef} className={st.layout} data-full={full || undefined} data-ask={askOpen || undefined} data-tree-folded={treeFolded || undefined}>
             {(treeOpen || askOpen) && (
               <button
                 type="button"
@@ -182,10 +199,8 @@ export function StudyPage({ section: sectionId }: { section: StudySection }) {
               section={section.id}
               file={file}
               onOpened={markOpened}
-              onBrowse={() => {
-                setAskOpen(false);
-                setTreeOpen(true);
-              }}
+              onBrowse={showFiles}
+              onToggleFiles={toggleFiles}
               full={full}
               onToggleFull={toggleFull}
               onRemove={() => {

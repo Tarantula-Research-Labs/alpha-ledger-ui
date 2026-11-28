@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Study: MScFE" };
 export default function Study() {
   return (
     <Suspense fallback={null}>
-      <StudyPage />
+      <StudyPage section="mscfe" />
     </Suspense>
   );
 }

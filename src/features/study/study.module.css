@@ -72,6 +72,7 @@
   .long { display: none; }
   .short { display: inline; }
   .viewerBar { gap: 2px; padding-left: 8px; }
+  .viewerBar .reloadBtn { display: none; } /* no room for it beside Remove; a file that fails to open has its own Try again */
   .studyFrame { height: calc(100dvh - 64px - 60px - 24px); gap: 6px; } /* the page strip is a bottom bar here */
   /* Phones are short on height: the active tab already names the section, so the big title and description go. */
   .page > header { margin-bottom: 8px; }
@@ -80,3 +81,20 @@
   .sync { width: 100%; justify-content: space-between; gap: 8px; }
   .synced { text-align: left; }
 }
+
+/* ---------- Image and text files ---------- */
+.imageWrap { position: absolute; inset: 0; overflow: auto; display: grid; place-items: center; padding: 12px; background: var(--panel); }
+.image { max-width: 100%; max-height: 100%; object-fit: contain; }
+.text { position: absolute; inset: 0; margin: 0; padding: 16px; overflow: auto; background: var(--panel); color: var(--text); font-family: var(--font-mono); font-size: var(--fs-sm); line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* ---------- Upload and Remove dialogs ---------- */
+.uploadForm { display: grid; gap: 14px; width: min(460px, 78vw); }
+.field { display: grid; gap: 4px; font-size: var(--fs-sm); }
+.hint { margin: 0; color: var(--muted); font-size: var(--fs-xs); line-height: 1.45; }
+.uploadList { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: var(--fs-sm); }
+.uploadList li { display: flex; justify-content: space-between; gap: 12px; }
+.uploadList li > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.uploadList li > span:last-child { flex: none; max-width: 55%; text-align: right; color: var(--muted); overflow-wrap: anywhere; }
+.uploadList li[data-state="done"] > span:last-child { color: var(--green); }
+.uploadList li[data-state="failed"] > span:last-child { color: var(--red); }
+.dialogActions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }

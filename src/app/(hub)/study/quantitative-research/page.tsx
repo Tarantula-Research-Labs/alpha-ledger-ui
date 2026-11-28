@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
-import { ComingSoon } from "@/features/study/ComingSoon";
+import { Suspense } from "react";
+import { StudyPage } from "@/features/study/StudyPage";
 
 export const metadata: Metadata = { title: "Study: Quantitative Research" };
 
 export default function Page() {
-  return <ComingSoon title="Quantitative Research" />;
+  return (
+    <Suspense fallback={null}>
+      <StudyPage section="quantitative-research" />
+    </Suspense>
+  );
 }

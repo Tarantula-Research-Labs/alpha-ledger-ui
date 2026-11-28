@@ -1,0 +1,60 @@
+/* Study: a file tree on the left, the reader on the right. Below 1100px the tree slides over the reader. */
+
+/* The page fills the screen under the header, so the tree and the reader scroll on their own. */
+.page { display: flex; flex-direction: column; height: calc(100dvh - 64px - 32px); min-height: 520px; }
+.page > header { flex: none; margin-bottom: 14px; }
+
+.sync { display: flex; align-items: center; gap: 12px; }
+.synced { color: var(--muted); font-size: var(--fs-xs); text-align: right; }
+.synced[data-failed] { color: var(--red); }
+
+.layout { position: relative; flex: 1; min-height: 0; display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 12px; }
+
+/* ---------- Tree ---------- */
+.treePane { display: flex; flex-direction: column; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); overflow: hidden; }
+.search { flex: none; padding: 10px; border-bottom: 1px solid var(--line); }
+.treeScroll { flex: 1; min-height: 0; overflow: auto; padding: 6px; }
+.none { margin: 0; padding: 14px 10px; color: var(--muted); font-size: var(--fs-sm); }
+
+.list { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.children { margin-left: 11px; padding-left: 4px; border-left: 1px solid var(--line); }
+.row { display: flex; align-items: flex-start; gap: 8px; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: var(--text); font: inherit; font-size: var(--fs-sm); line-height: 1.35; text-align: left; cursor: pointer; }
+.row:hover, .row:focus-visible { background: var(--row-hover); }
+.row[data-selected] { background: var(--row-selected); }
+.chevron { flex: none; width: 12px; color: var(--muted); text-align: center; transition: transform 0.12s; }
+.chevron[data-open] { transform: rotate(90deg); }
+.folderName { flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.fileName { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.kind { flex: none; margin-top: 1px; padding: 0 5px; border: 1px solid var(--line); border-radius: 4px; color: var(--muted); font-family: var(--font-mono); font-size: 10px; line-height: 16px; }
+.dot { flex: none; width: 7px; height: 7px; margin-top: 7px; border-radius: 50%; background: var(--amber); }
+.badge { flex: none; margin-top: 1px; padding: 0 6px; border: 1px solid currentColor; border-radius: 999px; font-size: 10px; line-height: 16px; }
+.badge[data-badge="new"] { color: var(--green); }
+.badge[data-badge="updated"] { color: var(--amber); }
+
+/* ---------- Reader ---------- */
+.viewer { display: flex; flex-direction: column; min-width: 0; min-height: 0; border: 1px solid var(--line); border-radius: var(--r-panel); background: var(--panel); overflow: hidden; }
+.viewerBar { flex: none; display: flex; align-items: center; gap: 8px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--line); }
+.title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-sm); }
+.crumb { color: var(--muted); }
+.note { flex: none; color: var(--amber); font-size: var(--fs-xs); }
+.filesBtn { display: none; }
+.frameWrap { position: relative; flex: 1; min-height: 0; background: #fff; }
+.frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #fff; }
+.centre { position: absolute; inset: 0; display: grid; place-items: center; overflow: auto; background: var(--panel); }
+.scrim { display: none; }
+
+/* ---------- Tablets (portrait) and phones: the tree slides over the reader ---------- */
+@media (max-width: 1100px) {
+  .layout { grid-template-columns: minmax(0, 1fr); }
+  .filesBtn { display: inline-flex; }
+  .treePane { position: absolute; inset: 0 auto 0 0; z-index: 5; width: min(88%, 360px); transform: translateX(-104%); transition: transform 0.18s ease; box-shadow: 6px 0 24px rgba(0, 0, 0, 0.35); }
+  .treePane[data-open] { transform: none; }
+  .scrim { display: block; position: absolute; inset: 0; z-index: 4; border: 0; background: rgba(0, 0, 0, 0.45); cursor: pointer; }
+  .row { padding: 10px 10px; } /* bigger touch targets */
+}
+
+@media (max-width: 760px) {
+  .page { height: calc(100dvh - 64px - 60px - 24px); } /* the page strip is a bottom bar here */
+  .sync { gap: 8px; }
+  .synced { display: none; }
+}

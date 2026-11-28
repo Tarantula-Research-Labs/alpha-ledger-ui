@@ -47,6 +47,14 @@ export const DriveIcon = () => (
   </svg>
 );
 
+export const StudyIcon = () => (
+  <svg {...base}>
+    <path d="M2 9l10-5 10 5-10 5z" />
+    <path d="M6 11.2V16c0 1.5 2.7 3 6 3s6-1.5 6-3v-4.8" />
+    <path d="M22 9v6" />
+  </svg>
+);
+
 export const SignOutIcon = () => (
   <svg {...base}>
     <path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 16l-4-4 4-4M6 12h10" />

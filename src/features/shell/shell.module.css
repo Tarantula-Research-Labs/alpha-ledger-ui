@@ -283,6 +283,12 @@
 .hubBody .hubMain {
   width: 100%;
 }
+/* Full-width pages (Study): no centred column, less padding. */
+.hubBody .hubMainWide {
+  max-width: none;
+  margin: 0;
+  padding: 16px clamp(12px, 2vw, 24px);
+}
 .strip {
   position: sticky;
   top: 64px;

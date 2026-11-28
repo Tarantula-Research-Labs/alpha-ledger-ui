@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { DriveIcon, ExperimentsIcon, RecordsIcon } from "@/core/ui/icons";
+import { DriveIcon, ExperimentsIcon, RecordsIcon, StudyIcon } from "@/core/ui/icons";
 import s from "./shell.module.css";
 
 // Pages in the strip. To add one: one line here (plus its page under app/(hub)).
@@ -10,6 +10,7 @@ const NAV = [
   { href: "/experiments", label: "Experiments", Icon: ExperimentsIcon },
   { href: "/drive", label: "Drive", Icon: DriveIcon },
   { href: "/records", label: "Research records", Icon: RecordsIcon },
+  { href: "/study", label: "Study", Icon: StudyIcon },
 ];
 
 // The pages, as a slim icon strip under the header with tooltips (a bottom bar on phones).

@@ -4,7 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { Button, Dialog, inputClass } from "@/core/ui";
 import { GearSpinner } from "@/core/ui/GearSpinner";
-import { askStudy, askTargetOf, clearChat, errorText, fileName, loadChat, type ChatMessage, type StudyFile, type StudySection } from "./study";
+import { askStudy, askTargetOf, checkModels, clearChat, errorText, fileName, loadChat, modelLabel, type ChatMessage, type ModelStatus, type StudyFile, type StudySection } from "./study";
 import a from "./ask.module.css";
 
 // KaTeX and the Markdown renderer are only fetched when the first answer is shown.
@@ -48,6 +48,10 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
   const [confirmNew, setConfirmNew] = useState(false);
   const [clearing, setClearing] = useState(false);
   const [retry, setRetry] = useState(0);
+  const [models, setModels] = useState<ModelStatus[] | null>(null);
+  const [checking, setChecking] = useState(true);
+  const [checkFailed, setCheckFailed] = useState(false);
+  const [model, setModel] = useState("auto"); // "auto" = the server races its models; otherwise one model's name
   const list = useRef<HTMLDivElement>(null);
 
   // Load the saved conversation of the open file.
@@ -70,6 +74,32 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
     };
     // The file's path decides what to load; the rest of the file object changing (a badge, say) must not reload it.
   }, [section, key, retry]);
+
+  // Which models answer right now. The server keeps the result for five minutes, so asking again for every file costs nothing.
+  async function runCheck(fresh: boolean, isLive: () => boolean = () => true) {
+    if (fresh || models === null) setChecking(true);
+    try {
+      const result = await checkModels(fresh);
+      if (!isLive()) return;
+      setModels(result);
+      setCheckFailed(false);
+      // A model that stopped answering can't stay picked.
+      setModel((m) => (m !== "auto" && !result.some((x) => x.name === m && x.ok) ? "auto" : m));
+    } catch {
+      if (isLive()) setCheckFailed(true);
+    } finally {
+      if (isLive()) setChecking(false);
+    }
+  }
+
+  useEffect(() => {
+    let live = true;
+    void runCheck(false, () => live);
+    return () => {
+      live = false;
+    };
+    // Looked at when the panel opens and when another file is opened; runCheck only reads state that this effect doesn't depend on.
+  }, [key]);
 
   // A new file starts with the whole file as the scope.
   useEffect(() => {
@@ -105,7 +135,7 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
     setPending({ key, question });
     setDraft("");
     try {
-      const reply = await askStudy(target, question, range);
+      const reply = await askStudy(target, question, range, model === "auto" ? undefined : model);
       const asked: ChatMessage = { role: "user", text: question, at: new Date().toISOString(), sig: reply.sig, firstPage: range?.first, lastPage: range?.last };
       setChat((c) => (c && c.key === key ? { ...c, messages: [...c.messages, asked, reply] } : c));
     } catch (e) {
@@ -181,8 +211,9 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
               ) : (
                 <div key={i} className={a.model}>
                   <AskMarkdown text={m.text} />
+                  {m.model && <p className={a.by}>{modelLabel(m.model)}</p>}
                   {m.sig !== shown.sig && <p className={a.note}>About an older version of this file.</p>}
-                  {m.fallback && <p className={a.note}>A lite model answered{m.model ? ` (${m.model})` : ""} because the main models were busy or too slow.</p>}
+                  {m.fallback && <p className={a.note}>A lite model answered because the main models were busy or too slow.</p>}
                 </div>
               ),
             )}
@@ -237,6 +268,32 @@ export function AskPanel({ section, file, pages, onClose }: Props) {
                 }
               }}
             />
+            <div className={a.modelRow}>
+              <label className={a.modelLabel}>
+                <span>Model</span>
+                <select className={`${inputClass} ${a.select}`} value={model} onChange={(e) => setModel(e.target.value)} disabled={waiting !== null} aria-label="Model">
+                  <option value="auto">Auto (fastest answer)</option>
+                  {models?.map((m) => (
+                    <option key={m.name} value={m.name} disabled={!m.ok}>
+                      {modelLabel(m.name)}
+                      {m.ok ? (m.ms !== null ? ` · ${(m.ms / 1000).toFixed(1)}s` : "") : ` – ${m.reason ?? "not answering"}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button type="button" className={a.link} onClick={() => void runCheck(true)} disabled={checking}>
+                {checking ? "Checking…" : "Recheck"}
+              </button>
+            </div>
+            {(checking && models === null) || checkFailed || models ? (
+              <p className={a.hint}>
+                {checking && models === null
+                  ? "Checking which models answer…"
+                  : checkFailed && models === null
+                    ? "Couldn't check the models. Auto still works."
+                    : `${models?.filter((m) => m.ok).length} of ${models?.length} models answering. Greyed ones are down for now.`}
+              </p>
+            ) : null}
             <div className={a.sendRow}>
               <span className={a.hint}>Ctrl+Enter sends</span>
               <Button variant="primary" onClick={() => void send()} disabled={!shown || waiting !== null || !draft.trim()}>

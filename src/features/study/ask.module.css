@@ -47,6 +47,13 @@
 .md :global(.katex-display) { margin: 0.8em 0; overflow-x: auto; overflow-y: hidden; padding: 2px 0; }
 .md :global(.katex) { font-size: 1.05em; }
 
+.modelRow { display: flex; align-items: center; gap: 8px; }
+.modelLabel { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: var(--fs-xs); }
+.select { flex: 1; min-width: 0; font-size: var(--fs-sm); }
+.link { flex: none; padding: 4px 2px; border: 0; background: none; color: var(--accent); font: inherit; font-size: var(--fs-xs); cursor: pointer; }
+.link:disabled { color: var(--muted); cursor: default; }
+.by { margin: 6px 0 0; color: var(--muted); font-size: 10px; }
+
 .compose { flex: none; display: grid; gap: 8px; padding: 10px 12px 12px; border-top: 1px solid var(--line); }
 .error { margin: 0; color: var(--red); font-size: var(--fs-xs); line-height: 1.4; }
 .box { width: 100%; box-sizing: border-box; resize: vertical; min-height: 60px; max-height: 200px; font-size: var(--fs-sm); }

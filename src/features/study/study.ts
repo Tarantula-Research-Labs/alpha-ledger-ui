@@ -233,13 +233,41 @@ export async function loadChat(t: AskTarget): Promise<{ messages: ChatMessage[];
   return { messages: r.messages.map(toMessage), sig: r.current_sig };
 }
 
-/** Ask a question about a file (all of it, or the given pages of a PDF). The answer can take up to a minute when Gemini is busy. */
-export async function askStudy(t: AskTarget, question: string, pages?: { first: number; last: number }): Promise<ChatMessage> {
+/**
+ * Ask a question about a file (all of it, or the given pages of a PDF). The answer can take up to a minute when Gemini is busy.
+ * With a model, only that model is asked; without one, the server races its models and falls back to a lite one.
+ */
+export async function askStudy(t: AskTarget, question: string, pages?: { first: number; last: number }, model?: string): Promise<ChatMessage> {
   const r = await apiRequest<{ message: ServerMessage }>("/study/ask", {
     method: "POST",
-    body: JSON.stringify({ ...t, question, first_page: pages?.first, last_page: pages?.last }),
+    body: JSON.stringify({ ...t, question, first_page: pages?.first, last_page: pages?.last, model }),
   });
   return toMessage(r.message);
+}
+
+/** One Gemini model, and whether it answered the server's tiny test question. */
+export interface ModelStatus {
+  name: string;
+  /** "main" = a flash model (raced for every question); "quick" = a lite model (the fallback). */
+  group: "main" | "quick";
+  ok: boolean;
+  /** How long the test answer took, in milliseconds (null when it failed). */
+  ms: number | null;
+  /** Why it failed, in a few words: "busy", "rate limited", "too slow"... */
+  reason: string | null;
+}
+
+/** Which models answer right now. The server keeps the result for five minutes; fresh = test again. */
+export async function checkModels(fresh = false): Promise<ModelStatus[]> {
+  const r = await apiRequest<{ models: ModelStatus[] }>(`/study/models${fresh ? "?fresh=true" : ""}`);
+  return r.models;
+}
+
+/** "gemini-3.5-flash-lite" -> "3.5 Flash-Lite". */
+export function modelLabel(name: string): string {
+  const parts = name.replace(/^gemini-/, "").split("-");
+  const [version, ...rest] = parts;
+  return rest.length > 0 && /^\d/.test(version) ? `${version} ${rest.map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("-")}` : name;
 }
 
 /** Start a new chat about a file. The server keeps a dated copy of the old one. */
